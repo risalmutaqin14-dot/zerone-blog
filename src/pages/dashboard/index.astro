@@ -1,0 +1,65 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { admin } from '../../db/admin';
+import { fmtDate, postStatus, STATUS_STYLE } from '../../lib/format';
+import { FileText, CheckCircle2, CalendarClock, PencilLine, Plus } from 'lucide-react';
+
+const now = new Date().toISOString();
+const count = async (f: (q: any) => any) => {
+  const { count } = await f(admin.from('posts').select('id', { count: 'exact', head: true }));
+  return count ?? 0;
+};
+const [total, published, scheduled, draft, recent] = await Promise.all([
+  count((q) => q),
+  count((q) => q.eq('status', 'published').lte('published_at', now)),
+  count((q) => q.eq('status', 'published').gt('published_at', now)),
+  count((q) => q.eq('status', 'draft')),
+  admin.from('posts').select('id,title,status,published_at,updated_at').order('updated_at', { ascending: false }).limit(5),
+]);
+
+const cards = [
+  { label: 'Total', value: total, icon: FileText, grad: 'from-indigo-500 to-blue-500' },
+  { label: 'Published', value: published, icon: CheckCircle2, grad: 'from-emerald-500 to-teal-500' },
+  { label: 'Scheduled', value: scheduled, icon: CalendarClock, grad: 'from-amber-500 to-orange-500' },
+  { label: 'Draft', value: draft, icon: PencilLine, grad: 'from-fuchsia-500 to-pink-500' },
+];
+---
+
+<DashboardLayout title="Overview" subtitle="Ringkasan konten blog kamu.">
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {cards.map(({ label, value, icon: Icon, grad }) => (
+      <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <div class={`size-10 rounded-xl bg-gradient-to-br ${grad} grid place-items-center text-white mb-4`}><Icon size={20} /></div>
+        <p class="text-3xl font-bold text-slate-900">{value}</p>
+        <p class="text-sm text-slate-500">{label}</p>
+      </div>
+    ))}
+  </div>
+
+  <div class="mt-8 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="flex items-center justify-between p-5 border-b border-slate-100">
+      <h2 class="font-semibold text-slate-900">Terakhir diubah</h2>
+      <a href="/dashboard/posts/new" class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"><Plus size={16} /> Create Blog</a>
+    </div>
+    {recent.data?.length ? (
+      <ul class="divide-y divide-slate-100">
+        {recent.data.map((p) => {
+          const s = postStatus(p);
+          return (
+            <li>
+              <a href={`/dashboard/posts/${p.id}/edit`} class="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50">
+                <span class="font-medium text-slate-800 truncate">{p.title}</span>
+                <span class="flex items-center gap-3 shrink-0">
+                  <span class="text-xs text-slate-400 hidden sm:inline">{fmtDate(p.updated_at)}</span>
+                  <span class={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset capitalize ${STATUS_STYLE[s]}`}>{s}</span>
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    ) : (
+      <p class="p-10 text-center text-slate-500">Belum ada post.</p>
+    )}
+  </div>
+</DashboardLayout>

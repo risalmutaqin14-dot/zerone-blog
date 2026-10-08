@@ -1,0 +1,18 @@
+---
+import DashboardLayout from '../../../../layouts/DashboardLayout.astro';
+import PostForm from '../../../../components/PostForm.jsx';
+import { admin } from '../../../../db/admin';
+
+const { id } = Astro.params;
+if (!/^[0-9a-f-]{36}$/i.test(id ?? '')) return new Response(null, { status: 404 });
+
+const [{ data: post }, { data: categories }] = await Promise.all([
+  admin.from('posts').select('*').eq('id', id!).maybeSingle(),
+  admin.from('categories').select('id,name').order('name'),
+]);
+if (!post) return new Response(null, { status: 404 });
+---
+
+<DashboardLayout title="Edit Blog" subtitle={post.title}>
+  <PostForm client:load post={post} categories={categories ?? []} />
+</DashboardLayout>

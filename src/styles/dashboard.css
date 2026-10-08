@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Tiptap editor content */
+.tiptap {
+  min-height: 360px;
+  padding: 1rem 1.25rem;
+  outline: none;
+  line-height: 1.7;
+}
+.tiptap > * + * { margin-top: 0.75em; }
+.tiptap h1 { font-size: 1.875rem; font-weight: 700; line-height: 1.2; }
+.tiptap h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
+.tiptap h3 { font-size: 1.25rem; font-weight: 600; }
+.tiptap ul { list-style: disc; padding-left: 1.5rem; }
+.tiptap ol { list-style: decimal; padding-left: 1.5rem; }
+.tiptap blockquote { border-left: 4px solid #818cf8; padding-left: 1rem; color: #475569; font-style: italic; }
+.tiptap code { background: #f1f5f9; border-radius: 4px; padding: 2px 6px; font-size: 0.9em; }
+.tiptap pre { background: #0f172a; color: #e2e8f0; border-radius: 12px; padding: 1rem; overflow-x: auto; }
+.tiptap pre code { background: none; padding: 0; color: inherit; }
+.tiptap a { color: #4f46e5; text-decoration: underline; }
+.tiptap img { max-width: 100%; border-radius: 12px; }
+.tiptap hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

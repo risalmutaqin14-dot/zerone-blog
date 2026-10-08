@@ -1,0 +1,12 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import CategoryManager from '../../components/CategoryManager.jsx';
+import { admin } from '../../db/admin';
+
+const { data } = await admin.from('categories').select('id,name,slug,posts(count)').order('name');
+const categories = (data ?? []).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug, posts: c.posts?.[0]?.count ?? 0 }));
+---
+
+<DashboardLayout title="Categories" subtitle="Kategori tidak bisa dihapus selama masih dipakai post.">
+  <CategoryManager client:load categories={categories} />
+</DashboardLayout>

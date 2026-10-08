@@ -1,0 +1,11 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import PostForm from '../../../components/PostForm.jsx';
+import { admin } from '../../../db/admin';
+
+const { data: categories } = await admin.from('categories').select('id,name').order('name');
+---
+
+<DashboardLayout title="Create Blog" subtitle="Tulis artikel baru.">
+  <PostForm client:load categories={categories ?? []} />
+</DashboardLayout>
