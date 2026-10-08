@@ -1,6 +1,7 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 import DeleteButton from '../../../components/DeleteButton.jsx';
+import ViewButton from '../../../components/ViewButton.jsx';
 import { admin } from '../../../db/admin';
 import { PAGE_SIZE } from '../../../lib/posts';
 import { fmtDate, postStatus, STATUS_STYLE } from '../../../lib/format';
@@ -44,7 +45,7 @@ const btn = 'inline-flex items-center gap-1 rounded-xl border border-slate-200 b
 <DashboardLayout title="List Blog" subtitle={`${total} post`}>
   <form method="get" class="mb-4 flex flex-wrap gap-2">
     <div class="relative flex-1 min-w-48">
-      <Search size={16} class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400"><Search size={16} /></span>
       <input name="q" value={q} placeholder="Cari judul..." aria-label="Cari judul" class={`${input} w-full pl-9`} />
     </div>
     <select name="status" aria-label="Filter status" class={input}>
@@ -97,6 +98,7 @@ const btn = 'inline-flex items-center gap-1 rounded-xl border border-slate-200 b
               <td class="px-5 py-3 text-slate-600 whitespace-nowrap">{fmtDate(p.updated_at)}</td>
               <td class="px-5 py-3">
                 <div class="flex justify-end gap-1">
+                  <ViewButton client:load id={p.id} label={p.title} />
                   <a href={`/dashboard/posts/${p.id}/edit`} aria-label={`Edit ${p.title}`} title="Edit" class="rounded-lg p-2 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"><Pencil size={16} /></a>
                   <DeleteButton client:load endpoint={`/api/admin/posts/${p.id}`} label={p.title} />
                 </div>

@@ -11,8 +11,9 @@ export const json = (data: unknown, status = 200, headers: Record<string, string
 
 export const cleanHtml = (html: string) =>
   sanitizeHtml(html, {
-    allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'hr', 'a', 'img'],
-    allowedAttributes: { a: ['href', 'target', 'rel'], img: ['src', 'alt'] },
+    allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'u', 's', 'mark', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'hr', 'a', 'img'],
+    allowedAttributes: { a: ['href', 'target', 'rel'], img: ['src', 'alt'], p: ['style'], h1: ['style'], h2: ['style'], h3: ['style'], h4: ['style'] },
+    allowedStyles: { '*': { 'text-align': [/^(left|center|right|justify)$/] } },
     allowedSchemes: ['http', 'https', 'mailto'],
     transformTags: { a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer nofollow' }) },
   });

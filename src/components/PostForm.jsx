@@ -107,7 +107,7 @@ export default function PostForm({ post, categories = [] }) {
               onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
           </div>
           <div>
-            <label htmlFor="excerpt" className={label}>Ringkasan <span className="text-slate-400">({f.excerpt.length}/500)</span></label>
+            <label htmlFor="excerpt" className={label}>Excerpt <span className="text-slate-400">({f.excerpt.length}/500)</span></label>
             <textarea id="excerpt" rows={3} maxLength={500} value={f.excerpt} className={field}
               onChange={(e) => set('excerpt', e.target.value)} />
           </div>
