@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pencil, X, Loader2, ImagePlus, ShieldCheck } from 'lucide-react';
 import DeleteButton from './DeleteButton.jsx';
 import FormDialog from './FormDialog.jsx';
+import PasswordInput from './PasswordInput.jsx';
 
 import { card, input, chip, iconBtn } from '../lib/ui.js';
 
@@ -28,7 +29,7 @@ async function uploadImage(file) {
 // reauth: aksi sensitif (tambah user; ubah email/password/role) minta password pelaku saat ini.
 /** @param {{ items: any[], endpoint: string, noun: string, reauth?: boolean, fields?: { key: string, label: string, textarea?: boolean, image?: boolean, type?: 'email' | 'password' | 'select', options?: { value: string, label: string }[], max?: number, hint?: string }[] }} props */
 export default function NameManager({ items, endpoint, noun, fields = [], reauth = false }) {
-  const blank = { name: '', current_password: '', ...Object.fromEntries(fields.map((f) => [f.key, f.type === 'select' ? f.options?.[f.options.length - 1]?.value ?? '' : ''])) };
+  const blank = { name: '', current_password: '', confirm_password: '', ...Object.fromEntries(fields.map((f) => [f.key, f.type === 'select' ? f.options?.[f.options.length - 1]?.value ?? '' : ''])) };
   const [form, setForm] = useState(blank);
   const [editId, setEditId] = useState(null); // null = mode tambah
   const [orig, setOrig] = useState(null); // email/role awal, untuk mendeteksi perubahan sensitif
@@ -94,9 +95,15 @@ export default function NameManager({ items, endpoint, noun, fields = [], reauth
   const needsReauth =
     reauth && (editId === null || !!form.password || (!!orig && (form.email !== orig.email || (form.role ?? '') !== orig.role)));
 
+  // Ulangi password: saat tambah, atau saat edit dan password baru diisi.
+  const needsConfirm = fields.some((f) => f.type === 'password') && (editId === null || !!form.password);
+
   const submit = () =>
     run(() => {
       const body = { ...form };
+      // Cek salah ketik saja (bukan keamanan): server tidak menerima confirm_password, dan tetap memvalidasi password.
+      if (needsConfirm && body.password !== body.confirm_password) throw new Error('Konfirmasi password tidak sama');
+      delete body.confirm_password;
       if (editId !== null && !body.password) delete body.password; // kosong = tidak diganti
       if (!needsReauth) delete body.current_password;
       return send(editId ? `${endpoint}/${editId}` : endpoint, editId ? 'PUT' : 'POST', body);
@@ -137,8 +144,17 @@ export default function NameManager({ items, endpoint, noun, fields = [], reauth
                 {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             ) : f.type === 'password' ? (
-              <input id={id} type="password" value={value[f.key]} onChange={set} maxLength={128} minLength={editId === null ? 12 : undefined}
-                required={editId === null} autoComplete="new-password" placeholder={f.hint} className={input} />
+              <>
+                <PasswordInput id={id} value={value[f.key]} onChange={set} maxLength={128} minLength={editId === null ? 12 : undefined}
+                  required={editId === null} autoComplete="new-password" placeholder={f.hint} className={input} />
+                {needsConfirm && (
+                  <div className="mt-3">
+                    <label htmlFor={`${id}-confirm`} className="mb-1 block text-xs font-medium text-slate-600">Ulangi password</label>
+                    <PasswordInput id={`${id}-confirm`} value={value.confirm_password} onChange={(e) => onChange({ ...value, confirm_password: e.target.value })}
+                      maxLength={128} required autoComplete="new-password" className={input} />
+                  </div>
+                )}
+              </>
             ) : f.textarea ? (
               <textarea id={id} rows={3} value={value[f.key]} maxLength={f.max} placeholder={f.hint} onChange={set} className={input} />
             ) : (
@@ -151,7 +167,7 @@ export default function NameManager({ items, endpoint, noun, fields = [], reauth
       {needsReauth && (
         <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 sm:col-span-2">
           <label htmlFor={`${idPrefix}-cur`} className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-amber-800"><ShieldCheck size={14} /> Konfirmasi: password Anda saat ini</label>
-          <input id={`${idPrefix}-cur`} type="password" required maxLength={128} autoComplete="current-password" value={value.current_password}
+          <PasswordInput id={`${idPrefix}-cur`} required maxLength={128} autoComplete="current-password" value={value.current_password}
             onChange={(e) => onChange({ ...value, current_password: e.target.value })} className={input} />
           <p className="mt-1 text-xs text-amber-700">Diperlukan untuk menambah user atau mengubah email, password, dan role.</p>
         </div>

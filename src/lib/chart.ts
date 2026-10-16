@@ -1,6 +1,6 @@
 export const RANGES = ['1m', '2m', '3m', '4m', '5m', '6m', 'ytd', '1y'] as const;
 export type Range = (typeof RANGES)[number];
-export const DEFAULT_RANGE: Range = '6m';
+export const DEFAULT_RANGE: Range = '1m';
 
 export const parseRange = (v: string | null): Range =>
   (RANGES as readonly string[]).includes(v ?? '') ? (v as Range) : DEFAULT_RANGE;

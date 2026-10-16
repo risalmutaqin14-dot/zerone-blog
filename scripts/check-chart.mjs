@@ -28,6 +28,6 @@ b = buildBuckets('6m', now);
 const c = countByBucket(b.starts, ['2026-10-15T09:11:00+00:00', '2026-09-30T18:00:00Z', '2026-09-30T16:00:00Z']);
 assert.deepEqual(c, [0, 0, 0, 0, 0, 1, 2]);
 
-assert.equal(parseRange('x'), '6m');
+assert.equal(parseRange('x'), '1m');
 assert.equal(parseRange('ytd'), 'ytd');
 console.log('chart ok');

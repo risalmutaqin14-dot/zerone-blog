@@ -1,6 +1,7 @@
 ---
 import "../styles/dashboard.css";
 import { SESSION_COOKIE, getSession } from "../lib/auth";
+import PasswordInput from "../components/PasswordInput.jsx";
 
 if (await getSession(Astro.cookies.get(SESSION_COOKIE)?.value))
     return Astro.redirect("/dashboard");
@@ -59,14 +60,15 @@ const message =
             />
 
             <label for="password" class="block text-sm font-medium text-slate-300 mb-2 mt-4">Password</label>
-            <input
+            <PasswordInput
+                client:load
                 id="password"
                 name="password"
-                type="password"
                 required
-                maxlength="128"
-                autocomplete="current-password"
-                class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-1"
+                maxLength={128}
+                autoComplete="current-password"
+                iconClass="text-slate-400 hover:text-white"
+                className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-1"
             />
             <button class="mt-6 w-full rounded-xl bg-linear-to-r from-brand-1 to-brand-2 py-3 font-semibold text-white hover:opacity-90 transition focus:outline-none focus:ring-2 focus:ring-brand-2 focus:ring-offset-2 focus:ring-offset-slate-950">
                 Masuk
