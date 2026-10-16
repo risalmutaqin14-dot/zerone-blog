@@ -1,0 +1,12 @@
+import type { APIRoute } from 'astro';
+import { fail, guard, ok, preflight, usedBy, withoutPosts } from '../../../lib/publicApi';
+
+export const OPTIONS: APIRoute = () => preflight();
+
+// Hanya author yang punya post terbit di website pemilik key.
+export const GET: APIRoute = async ({ request }) => {
+  const site = await guard(request);
+  if (site instanceof Response) return site;
+  const { data, error } = await usedBy('authors', 'name,slug,bio,avatar_url,links', site.id).order('name');
+  return error ? fail(error.message, 500, request) : ok(withoutPosts(data), request);
+};

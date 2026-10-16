@@ -1,126 +1,292 @@
 ---
-import DashboardLayout from '../../../layouts/DashboardLayout.astro';
-import DeleteButton from '../../../components/DeleteButton.jsx';
-import ViewButton from '../../../components/ViewButton.jsx';
-import { admin } from '../../../db/admin';
-import { PAGE_SIZE } from '../../../lib/posts';
-import { fmtDate, postStatus, STATUS_STYLE } from '../../../lib/format';
-import { Pencil, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import DeleteButton from "../../../components/DeleteButton.jsx";
+import ViewButton from "../../../components/ViewButton.jsx";
+import { admin } from "../../../db/admin";
+import { PAGE_SIZE, UUID } from "../../../lib/posts";
+import { fmtDate, postStatus, STATUS_STYLE } from "../../../lib/format";
+import { Pencil, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 const sp = Astro.url.searchParams;
-const q = (sp.get('q') ?? '').trim().slice(0, 100);
-const status = ['draft', 'published', 'scheduled'].includes(sp.get('status') ?? '') ? sp.get('status')! : '';
-const category = sp.get('category') ?? '';
-const page = Math.max(1, Number(sp.get('page')) || 1);
+const q = (sp.get("q") ?? "").trim().slice(0, 100);
+const status = ["draft", "published", "scheduled"].includes(
+    sp.get("status") ?? "",
+)
+    ? sp.get("status")!
+    : "";
+const category = sp.get("category") ?? "";
+const website = sp.get("website") ?? "";
+const page = Math.max(1, Number(sp.get("page")) || 1);
 const from = (page - 1) * PAGE_SIZE;
 const now = new Date().toISOString();
 
 let query = admin
-  .from('posts')
-  .select('id,title,slug,cover_url,tags,status,published_at,updated_at,category:categories(name)', { count: 'exact' })
-  .order('updated_at', { ascending: false })
-  .range(from, from + PAGE_SIZE - 1);
-if (q) query = query.ilike('title', `%${q.replace(/[%_\\]/g, '\\$&')}%`);
-if (status === 'draft') query = query.eq('status', 'draft');
-if (status === 'published') query = query.eq('status', 'published').lte('published_at', now);
-if (status === 'scheduled') query = query.eq('status', 'published').gt('published_at', now);
-if (/^[0-9a-f-]{36}$/i.test(category)) query = query.eq('category_id', category);
+    .from("posts")
+    .select(
+        "id,title,slug,excerpt,cover_url,cover_alt,meta_title,meta_description,tags,status,published_at,updated_at,category:categories(name),author:authors(name),website:websites(name)",
+        { count: "exact" },
+    )
+    .order("updated_at", { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
+if (q) query = query.ilike("title", `%${q.replace(/[%_\\]/g, "\\$&")}%`);
+if (status === "draft") query = query.eq("status", "draft");
+if (status === "published")
+    query = query.eq("status", "published").lte("published_at", now);
+if (status === "scheduled")
+    query = query.eq("status", "published").gt("published_at", now);
+if (UUID.test(category)) query = query.eq("category_id", category);
+if (UUID.test(website)) query = query.eq("website_id", website);
 
-const [{ data: posts, count, error }, { data: categories }] = await Promise.all([
-  query,
-  admin.from('categories').select('id,name').order('name'),
-]);
+const [{ data: posts, count, error }, { data: categories }, { data: websites }] =
+    await Promise.all([
+        query,
+        admin.from("categories").select("id,name").order("name"),
+        admin.from("websites").select("id,name").order("name"),
+    ]);
 
 const total = count ?? 0;
 const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 const href = (p: number) => {
-  const u = new URLSearchParams(sp);
-  u.set('page', String(p));
-  return `?${u}`;
+    const u = new URLSearchParams(sp);
+    u.set("page", String(p));
+    return `?${u}`;
 };
-const input = 'rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
-const btn = 'inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium';
+const input =
+    "rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2.5 text-sm text-slate-800 transition focus:border-brand-1 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-1/15";
+const btn =
+    "inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2 font-medium shadow-sm";
 ---
 
 <DashboardLayout title="List Blog" subtitle={`${total} post`}>
-  <form method="get" class="mb-4 flex flex-wrap gap-2">
-    <div class="relative flex-1 min-w-48">
-      <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400"><Search size={16} /></span>
-      <input name="q" value={q} placeholder="Cari judul..." aria-label="Cari judul" class={`${input} w-full pl-9`} />
+    <form method="get" class="mb-5 flex flex-wrap gap-2 rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70">
+        <div class="relative flex-1 min-w-48">
+            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+                <Search size={16} />
+            </span>
+            <input
+                name="q"
+                value={q}
+                placeholder="Cari judul..."
+                aria-label="Cari judul"
+                class={`${input} w-full pl-9`}
+            />
+        </div>
+        <select name="website" aria-label="Filter website" class={input}>
+            <option value="">Semua website</option>
+            {websites?.map((w) => (
+                <option value={w.id} selected={w.id === website}>
+                    {w.name}
+                </option>
+            ))}
+        </select>
+        <select name="status" aria-label="Filter status" class={input}>
+            <option value="">Semua status</option>
+            {["published", "scheduled", "draft"].map((s) => (
+                <option value={s} selected={s === status}>
+                    {s}
+                </option>
+            ))}
+        </select>
+        <select name="category" aria-label="Filter kategori" class={input}>
+            <option value="">Semua kategori</option>
+            {categories?.map((c) => (
+                <option value={c.id} selected={c.id === category}>
+                    {c.name}
+                </option>
+            ))}
+        </select>
+        <button class="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700">
+            Filter
+        </button>
+        <a
+            href="/dashboard/posts/new"
+            class="inline-flex items-center gap-1.5 rounded-xl bg-linear-to-r from-brand-1 to-brand-2 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-1/25 transition hover:shadow-lg hover:brightness-105"
+        >
+            <Plus size={16} /> Create
+        </a>
+    </form>
+
+    {error && (
+        <p class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+            Gagal memuat: {error.message}
+        </p>
+    )}
+
+    <div class="overflow-x-auto rounded-3xl bg-white shadow-sm ring-1 ring-slate-200/70">
+        <table class="w-full text-sm">
+            <thead class="border-b border-slate-100 bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+                <tr>
+                    <th class="px-5 py-3 font-semibold">Post</th>
+                    <th class="px-5 py-3 font-semibold">Website</th>
+                    <th class="px-5 py-3 font-semibold">SEO</th>
+                    <th class="px-5 py-3 font-semibold">Penulis</th>
+                    <th class="px-5 py-3 font-semibold">Kategori</th>
+                    <th class="px-5 py-3 font-semibold">Tags</th>
+                    <th class="px-5 py-3 font-semibold">Status</th>
+                    <th class="px-5 py-3 font-semibold whitespace-nowrap">
+                        Publish at
+                    </th>
+                    <th class="px-5 py-3 font-semibold whitespace-nowrap">
+                        Modified at
+                    </th>
+                    <th class="sticky right-0 z-10 bg-slate-50 px-4 py-3 shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.15)]">
+                        <span class="sr-only">Aksi</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {posts?.length ? (
+                    posts.map((p) => {
+                        const s = postStatus(p);
+                        return (
+                            <tr class="group transition hover:bg-slate-50">
+                                <td class="px-5 py-3">
+                                    <div class="flex items-center gap-3">
+                                        {p.cover_url ? (
+                                            <img
+                                                src={p.cover_url}
+                                                alt={p.cover_alt}
+                                                loading="lazy"
+                                                class="size-16 rounded-lg object-cover shrink-0"
+                                            />
+                                        ) : (
+                                            <div class="size-16 rounded-lg bg-linear-to-br from-brand-1/20 to-brand-2/20 shrink-0" />
+                                        )}
+                                        <div class="min-w-0 max-w-72">
+                                            <a
+                                                href={`/dashboard/posts/${p.id}/edit`}
+                                                class="font-semibold text-slate-900 hover:text-brand-1 line-clamp-2"
+                                            >
+                                                {p.title}
+                                            </a>
+                                            <p class="font-mono text-xs text-slate-400 truncate">
+                                                /{p.slug}
+                                            </p>
+                                            {p.excerpt && (
+                                                <p class="mt-1 text-xs text-slate-500 line-clamp-2">
+                                                    {p.excerpt}
+                                                </p>
+                                            )}
+                                            <p class="mt-1 text-xs text-slate-400 line-clamp-1">
+                                                Alt: {p.cover_alt || "-"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-3 text-slate-600 whitespace-nowrap">
+                                    {(p.website as any)?.name ?? "-"}
+                                </td>
+                                <td class="px-5 py-3 text-xs text-slate-600 max-w-60">
+                                    <p class="font-medium text-slate-800 line-clamp-1">
+                                        {p.meta_title || "-"}
+                                    </p>
+                                    <p class="text-slate-500 line-clamp-2">
+                                        {p.meta_description || "-"}
+                                    </p>
+                                </td>
+                                <td class="px-5 py-3 text-slate-600 whitespace-nowrap">
+                                    {(p.author as any)?.name ?? "-"}
+                                </td>
+                                <td class="px-5 py-3 text-slate-600">
+                                    {(p.category as any)?.name ?? "-"}
+                                </td>
+                                <td class="px-5 py-3">
+                                    <div class="flex flex-wrap gap-1 max-w-44">
+                                        {p.tags?.length
+                                            ? p.tags.map((t: string) => (
+                                                  <span class="rounded-md bg-brand-1/10 px-1.5 py-0.5 text-xs text-brand-1">
+                                                      #{t}
+                                                  </span>
+                                              ))
+                                            : "-"}
+                                    </div>
+                                </td>
+                                <td class="px-5 py-3">
+                                    <span
+                                        class={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset capitalize ${STATUS_STYLE[s]}`}
+                                    >
+                                        {s}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3 text-slate-600 whitespace-nowrap">
+                                    {fmtDate(p.published_at)}
+                                </td>
+                                <td class="px-5 py-3 text-slate-600 whitespace-nowrap">
+                                    {fmtDate(p.updated_at)}
+                                </td>
+                                <td class="sticky right-0 z-10 bg-white px-4 py-3 shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.15)] group-hover:bg-slate-50">
+                                    <div class="flex justify-end gap-1">
+                                        <ViewButton
+                                            client:load
+                                            id={p.id}
+                                            label={p.title}
+                                        />
+                                        <a
+                                            href={`/dashboard/posts/${p.id}/edit`}
+                                            aria-label={`Edit ${p.title}`}
+                                            title="Edit"
+                                            class="rounded-lg p-2 text-slate-500 hover:bg-brand-1/10 hover:text-brand-1"
+                                        >
+                                            <Pencil size={16} />
+                                        </a>
+                                        <DeleteButton
+                                            client:load
+                                            endpoint={`/api/admin/posts/${p.id}`}
+                                            label={p.title}
+                                        />
+                                    </div>
+                                </td>
+                            </tr>
+                        );
+                    })
+                ) : (
+                    <tr>
+                        <td
+                            colspan="10"
+                            class="px-5 py-16 text-center text-slate-500"
+                        >
+                            Tidak ada post.
+                        </td>
+                    </tr>
+                )}
+            </tbody>
+        </table>
     </div>
-    <select name="status" aria-label="Filter status" class={input}>
-      <option value="">Semua status</option>
-      {['published', 'scheduled', 'draft'].map((s) => <option value={s} selected={s === status}>{s}</option>)}
-    </select>
-    <select name="category" aria-label="Filter kategori" class={input}>
-      <option value="">Semua kategori</option>
-      {categories?.map((c) => <option value={c.id} selected={c.id === category}>{c.name}</option>)}
-    </select>
-    <button class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Filter</button>
-    <a href="/dashboard/posts/new" class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90"><Plus size={16} /> Create</a>
-  </form>
 
-  {error && <p class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">Gagal memuat: {error.message}</p>}
-
-  <div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-    <table class="w-full text-sm">
-      <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-        <tr>
-          <th class="px-5 py-3 font-semibold">Post</th>
-          <th class="px-5 py-3 font-semibold">Kategori</th>
-          <th class="px-5 py-3 font-semibold">Status</th>
-          <th class="px-5 py-3 font-semibold whitespace-nowrap">Publish at</th>
-          <th class="px-5 py-3 font-semibold whitespace-nowrap">Modified at</th>
-          <th class="px-5 py-3"><span class="sr-only">Aksi</span></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-100">
-        {posts?.length ? posts.map((p) => {
-          const s = postStatus(p);
-          return (
-            <tr class="hover:bg-slate-50/70">
-              <td class="px-5 py-3">
-                <div class="flex items-center gap-3">
-                  {p.cover_url
-                    ? <img src={p.cover_url} alt="" loading="lazy" class="size-12 rounded-lg object-cover shrink-0" />
-                    : <div class="size-12 rounded-lg bg-gradient-to-br from-indigo-100 to-fuchsia-100 shrink-0" />}
-                  <div class="min-w-0">
-                    <a href={`/dashboard/posts/${p.id}/edit`} class="font-semibold text-slate-900 hover:text-indigo-600 line-clamp-1">{p.title}</a>
-                    <div class="mt-1 flex flex-wrap gap-1">
-                      {p.tags?.slice(0, 3).map((t: string) => <span class="rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">#{t}</span>)}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-5 py-3 text-slate-600">{(p.category as any)?.name ?? '-'}</td>
-              <td class="px-5 py-3"><span class={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset capitalize ${STATUS_STYLE[s]}`}>{s}</span></td>
-              <td class="px-5 py-3 text-slate-600 whitespace-nowrap">{fmtDate(p.published_at)}</td>
-              <td class="px-5 py-3 text-slate-600 whitespace-nowrap">{fmtDate(p.updated_at)}</td>
-              <td class="px-5 py-3">
-                <div class="flex justify-end gap-1">
-                  <ViewButton client:load id={p.id} label={p.title} />
-                  <a href={`/dashboard/posts/${p.id}/edit`} aria-label={`Edit ${p.title}`} title="Edit" class="rounded-lg p-2 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600"><Pencil size={16} /></a>
-                  <DeleteButton client:load endpoint={`/api/admin/posts/${p.id}`} label={p.title} />
-                </div>
-              </td>
-            </tr>
-          );
-        }) : (
-          <tr><td colspan="6" class="px-5 py-16 text-center text-slate-500">Tidak ada post.</td></tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-
-  {total > PAGE_SIZE && (
-    <nav class="mt-4 flex items-center justify-between text-sm" aria-label="Pagination">
-      <p class="text-slate-500">Halaman {page} dari {totalPages}</p>
-      <div class="flex gap-2">
-        <a href={page > 1 ? href(page - 1) : undefined} aria-disabled={page <= 1}
-          class:list={[btn, page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-slate-50']}><ChevronLeft size={16} /> Sebelumnya</a>
-        <a href={page < totalPages ? href(page + 1) : undefined} aria-disabled={page >= totalPages}
-          class:list={[btn, page >= totalPages ? 'pointer-events-none opacity-40' : 'hover:bg-slate-50']}>Berikutnya <ChevronRight size={16} /></a>
-      </div>
-    </nav>
-  )}
+    {total > PAGE_SIZE && (
+        <nav
+            class="mt-4 flex items-center justify-between text-sm"
+            aria-label="Pagination"
+        >
+            <p class="text-slate-500">
+                Halaman {page} dari {totalPages}
+            </p>
+            <div class="flex gap-2">
+                <a
+                    href={page > 1 ? href(page - 1) : undefined}
+                    aria-disabled={page <= 1}
+                    class:list={[
+                        btn,
+                        page <= 1
+                            ? "pointer-events-none opacity-40"
+                            : "hover:bg-slate-50",
+                    ]}
+                >
+                    <ChevronLeft size={16} /> Sebelumnya
+                </a>
+                <a
+                    href={page < totalPages ? href(page + 1) : undefined}
+                    aria-disabled={page >= totalPages}
+                    class:list={[
+                        btn,
+                        page >= totalPages
+                            ? "pointer-events-none opacity-40"
+                            : "hover:bg-slate-50",
+                    ]}
+                >
+                    Berikutnya <ChevronRight size={16} />
+                </a>
+            </div>
+        </nav>
+    )}
 </DashboardLayout>

@@ -1,5 +1,5 @@
 {
-  "name": "minor-moon",
+  "name": "blog-zerone",
   "type": "module",
   "version": "0.0.1",
   "engines": {
@@ -22,6 +22,7 @@
     "@tiptap/extension-highlight": "^3.31.4",
     "@tiptap/extension-image": "^3.31.4",
     "@tiptap/extension-placeholder": "^3.31.4",
+    "@tiptap/extension-table": "^3.31.4",
     "@tiptap/extension-text-align": "^3.31.4",
     "@tiptap/pm": "^3.31.4",
     "@tiptap/react": "^3.31.4",
@@ -30,8 +31,10 @@
     "@types/react-dom": "^19.3.0",
     "astro": "^7.3.7",
     "lucide-react": "^1.53.0",
+    "marked": "^18.1.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-image-crop": "^11.1.2",
     "sanitize-html": "^2.18.0",
     "sharp": "^0.35.0",
     "tailwindcss": "^4.3.3"

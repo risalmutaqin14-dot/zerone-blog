@@ -18,10 +18,13 @@ export default defineConfig({
   env: {
     schema: {
       SUPABASE_SERVICE_ROLE_KEY: envField.string({ context: 'server', access: 'secret' }),
-      ADMIN_PASSWORD: envField.string({ context: 'server', access: 'secret' }),
-      SESSION_SECRET: envField.string({ context: 'server', access: 'secret', min: 32 }),
-      NEXT_API_KEY: envField.string({ context: 'server', access: 'secret' }),
-      ALLOWED_ORIGIN: envField.string({ context: 'server', access: 'secret', default: '' }),
+      // API key & origin per website ada di tabel `websites` (menu Websites), bukan di env.
+      // URL web utama (Next.js). Link ke host ini dianggap internal -> tanpa nofollow.
+      SITE_URL: envField.string({ context: 'server', access: 'secret', default: '' }),
+      // Webhook revalidate: URL per website (kolom websites.revalidate_url). Secret dipakai bersama.
+      REVALIDATE_SECRET: envField.string({ context: 'server', access: 'secret', default: '' }),
+      // Secret untuk GET/POST /api/cron/publish (dipanggil scheduler eksternal). Kosong = endpoint mati.
+      CRON_SECRET: envField.string({ context: 'server', access: 'secret', default: '' }),
     },
   },
 

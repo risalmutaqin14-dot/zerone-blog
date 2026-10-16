@@ -1,0 +1,61 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import NameManager from "../../components/NameManager.jsx";
+import { admin } from "../../db/admin";
+import { USER_COLS, presentUser } from "../../lib/users";
+
+const me = Astro.locals.user!;
+const isSuper = me.role === "superadmin";
+
+const { data } = await admin
+    .from("authors")
+    .select(`${USER_COLS},posts(count)`)
+    .order("name");
+// presentUser menyaring email user lain & menandai baris yang boleh diedit/dihapus.
+const users = (data ?? []).map((a: any) => ({
+    ...presentUser(a, me),
+    posts: a.posts?.[0]?.count ?? 0,
+}));
+
+const fields = [
+    { key: "email", label: "Email (untuk login)", type: "email" },
+    { key: "password", label: "Password", type: "password", hint: "Min. 12 karakter" },
+    ...(isSuper
+        ? [{
+              key: "role",
+              label: "Role",
+              type: "select",
+              options: [
+                  { value: "superadmin", label: "Superadmin (akses penuh)" },
+                  { value: "admin", label: "Admin" },
+              ],
+          }]
+        : []),
+    { key: "slug", label: "Slug (kosong = otomatis dari nama)", max: 100, hint: "contoh: budi-santoso" },
+    { key: "avatar_url", label: "Avatar", image: true },
+    { key: "bio", label: "Bio", textarea: true, max: 500 },
+    { key: "links", label: "Link sosial (satu URL per baris)", textarea: true, hint: "https://linkedin.com/in/..." },
+];
+---
+
+<DashboardLayout
+    title="Users"
+    subtitle={isSuper
+        ? "Kelola akun, role, dan profil penulis. User tidak bisa dihapus selama masih dipakai post."
+        : "Anda hanya bisa mengedit profil Anda sendiri."}
+>
+    {isSuper && (
+        <button slot="actions" type="button" data-open-add class="inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-1 to-brand-2 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-1/25 transition hover:shadow-lg hover:brightness-105">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+            Add user
+        </button>
+    )}
+    <NameManager
+        client:load
+        items={users}
+        endpoint="/api/admin/authors"
+        noun="user"
+        fields={fields}
+        reauth
+    />
+</DashboardLayout>

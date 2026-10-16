@@ -1,12 +1,48 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import CategoryManager from '../../components/CategoryManager.jsx';
-import { admin } from '../../db/admin';
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import NameManager from "../../components/NameManager.jsx";
+import { admin } from "../../db/admin";
 
-const { data } = await admin.from('categories').select('id,name,slug,posts(count)').order('name');
-const categories = (data ?? []).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug, posts: c.posts?.[0]?.count ?? 0 }));
+const { data } = await admin
+    .from("categories")
+    .select("id,name,slug,description,posts(count)")
+    .order("name");
+const categories = (data ?? []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    description: c.description,
+    posts: c.posts?.[0]?.count ?? 0,
+}));
+const fields = [
+    {
+        key: "slug",
+        label: "Slug (kosong = otomatis dari nama)",
+        max: 100,
+        hint: "contoh: tips-seo",
+    },
+    {
+        key: "description",
+        label: "Deskripsi (meta halaman kategori)",
+        textarea: true,
+        max: 300,
+    },
+];
 ---
 
-<DashboardLayout title="Categories" subtitle="Kategori tidak bisa dihapus selama masih dipakai post.">
-  <CategoryManager client:load categories={categories} />
+<DashboardLayout
+    title="Categories"
+    subtitle="Kategori tidak bisa dihapus selama masih dipakai post."
+>
+    <button slot="actions" type="button" data-open-add class="inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-1 to-brand-2 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-brand-1/25 transition hover:shadow-lg hover:brightness-105">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5v14" /></svg>
+        Add category
+    </button>
+    <NameManager
+        client:load
+        items={categories}
+        endpoint="/api/admin/categories"
+        noun="kategori"
+        fields={fields}
+    />
 </DashboardLayout>

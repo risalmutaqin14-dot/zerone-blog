@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/logo.png">
+<title>Dokumentasi API | Blog Zerone CMS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --b1: #1E98C0;
+    --b2: #3CA9BE;
+    --bg: #f8fafc;
+    --fg: #0f172a;
+    --mut: #64748b;
+    --line: #e2e8f0;
+    --code: #1e293b;
+    --radius: 12px;
+  }
+  
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  body { margin: 0; color: var(--fg); background: var(--bg); line-height: 1.7; }
+
+  /* -- Login Overlay -- */
+  #login-overlay { 
+    position: fixed; inset: 0; 
+    background: rgba(15, 23, 42, 0.85); 
+    backdrop-filter: blur(10px); 
+    display: flex; align-items: center; justify-content: center; 
+    z-index: 9999; 
+    transition: opacity 0.3s ease;
+  }
+  .login-card { 
+    background: #fff; padding: 40px; 
+    border-radius: 24px; 
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); 
+    width: 90%; max-width: 400px; 
+    text-align: center; 
+  }
+  .login-card h2 { margin-top: 0; color: var(--fg); font-size: 24px; border: none; padding: 0; }
+  .login-card p { color: var(--mut); font-size: 14px; margin-bottom: 24px; }
+  .login-card input { 
+    width: 100%; padding: 14px 16px; 
+    border: 1px solid var(--line); border-radius: 12px; 
+    margin-bottom: 16px; font-size: 15px; outline: none; 
+    transition: 0.2s; font-family: inherit;
+  }
+  .login-card input:focus { border-color: var(--b1); box-shadow: 0 0 0 4px rgba(30,152,192,0.15); }
+  .login-card button { 
+    width: 100%; padding: 14px; 
+    background: var(--b1); color: #fff; 
+    border: none; border-radius: 12px; 
+    font-size: 15px; font-weight: 600; 
+    cursor: pointer; transition: 0.2s; 
+  }
+  .login-card button:hover { background: #177a9a; transform: translateY(-1px); }
+  #error-msg { color: #ef4444; font-size: 13px; margin-top: 12px; display: none; font-weight: 500; }
+
+  /* -- Main Content -- */
+  #app-content { display: none; }
+  
+  nav { 
+    position: fixed; inset: 0 auto 0 0; 
+    width: 280px; padding: 32px 24px; overflow-y: auto; 
+    color: #fff; background: linear-gradient(160deg, #0f172a, #1e293b); 
+    box-shadow: 4px 0 20px rgba(0,0,0,0.05); 
+  }
+  nav .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 17px; margin-bottom: 32px; letter-spacing: 0.2px; }
+  nav .brand img { width: 36px; height: 36px; border-radius: 10px; background: #fff; padding: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+  nav a { display: block; padding: 8px 14px; border-radius: 8px; color: #94a3b8; text-decoration: none; font-size: 14px; transition: 0.2s; font-weight: 500; margin-bottom: 4px; }
+  nav a:hover { background: rgba(255,255,255,0.08); color: #fff; transform: translateX(4px); }
+  nav small { display: block; margin: 28px 14px 10px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #64748b; font-weight: 700; }
+  
+  main { margin-left: 280px; max-width: 900px; padding: 56px 48px 100px; }
+  h1 { margin: 0 0 12px; font-size: 36px; font-weight: 800; letter-spacing: -0.03em; color: #0f172a; }
+  h2 { margin: 64px 0 16px; padding-top: 24px; font-size: 24px; border-top: 1px solid var(--line); font-weight: 700; color: #0f172a; letter-spacing: -0.01em; }
+  h3 { margin: 32px 0 12px; font-size: 18px; font-weight: 600; color: #1e293b; }
+  p, li { color: #475569; font-size: 15px; }
+  .lead { color: var(--mut); font-size: 18px; line-height: 1.6; }
+  a { color: var(--b1); text-decoration: none; font-weight: 500; }
+  a:hover { text-decoration: underline; }
+  
+  code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13.5px; background: #f1f5f9; color: #ef4444; padding: 3px 6px; border-radius: 6px; }
+  pre { margin: 16px 0 24px; padding: 20px 24px; overflow: auto; border-radius: var(--radius); background: var(--code); color: #e2e8f0; line-height: 1.6; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+  pre code { background: none; padding: 0; color: inherit; font-size: 13.5px; }
+  
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 16px 0 24px; font-size: 14.5px; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); border: 1px solid var(--line); }
+  th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { background: #f8fafc; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--mut); font-weight: 700; border-bottom: 2px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  tr:hover td { background: #f8fafc; }
+  
+  .ep { display: flex; align-items: center; gap: 12px; margin: 20px 0; padding: 14px 18px; background: #fff; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--line); font-family: ui-monospace, monospace; font-size: 14px; }
+  .m { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; font-family: ui-monospace, Consolas, monospace; color: #fff; background: var(--b1); letter-spacing: 0.5px; }
+  .m.post { background: #10b981; }
+  
+  .note { margin: 24px 0; padding: 16px 20px; border-left: 4px solid var(--b1); background: #f0f9ff; border-radius: 0 var(--radius) var(--radius) 0; color: #0c4a6e; }
+  .note b { color: #075985; }
+  .warn { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+  .warn b { color: #78350f; }
+  
+  @media(max-width: 800px) {
+    nav { position: static; width: 100%; padding: 24px; }
+    main { margin: 0; padding: 32px 24px; }
+    #app-content { display: none; flex-direction: column; }
+    #app-content.active { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div id="login-overlay">
+  <div class="login-card">
+    <h2>Akses Terbatas</h2>
+    <p>Masukkan password untuk melihat Dokumentasi API.</p>
+    <input type="password" id="pwd" placeholder="Password..." autocomplete="off">
+    <button onclick="checkPwd()">Akses Dokumentasi</button>
+    <p id="error-msg">Password salah. Silakan coba lagi.</p>
+  </div>
+</div>
+
+<!-- Main App Content -->
+<div id="app-content">
+  <nav>
+    <div class="brand"><img src="/logo.png" alt=""> Blog Zerone API</div>
+    <a href="#mulai">Mulai</a>
+    <a href="#multisite">Multi-website</a>
+    <a href="#auth">Autentikasi</a>
+    <a href="#respons">Respons &amp; error</a>
+    <a href="#cache">Cache &amp; ETag</a>
+    <small>Endpoint</small>
+    <a href="#posts">GET /api/posts</a>
+    <a href="#post">GET /api/posts/:slug</a>
+    <a href="#categories">Kategori</a>
+    <a href="#authors">Author</a>
+    <a href="#tags">GET /api/tags</a>
+    <a href="#sitemap">GET /api/sitemap</a>
+    <small>Integrasi</small>
+    <a href="#webhook">Webhook revalidate</a>
+    <a href="#cron">Cron publish</a>
+    <a href="#nextjs">Contoh Next.js</a>
+    <a href="#env">Environment</a>
+  </nav>
+
+  <main>
+    <h1>Dokumentasi API</h1>
+    <p class="lead">API publik read-only untuk menyajikan blog/artikel ke website utama (Next.js). Admin hanya mengelola konten.</p>
+
+    <h2 id="mulai">Mulai</h2>
+    <p>Base URL: URL deploy admin, mis. <code>https://admin.zerone.id</code>. Semua path di bawah relatif terhadap base URL.</p>
+    <pre><code>curl -H "x-api-key: &lt;API_KEY_WEBSITE&gt;" https://admin.zerone.id/api/posts</code></pre>
+    <div class="note warn"><b>Panggil dari server.</b> Jangan taruh API key di kode browser atau variabel <code>NEXT_PUBLIC_*</code>. Pakai Server Component, route handler, atau <code>generateStaticParams</code>.</div>
+
+    <h2 id="multisite">Multi-website</h2>
+    <p>Satu admin melayani banyak website (mis. edunav.id, latihan.id, zerone.id). Tiap website punya API key sendiri, dibuat di dashboard menu <b>Websites</b>. Key menentukan website: endpoint sama, isi berbeda. Tidak ada parameter <code>?site=</code>.</p>
+    <ul>
+      <li><code>/api/posts</code>, <code>/api/tags</code>, <code>/api/sitemap</code>: hanya milik website pemilik key.</li>
+      <li>Kategori dan author dipakai bersama, tapi API hanya mengembalikan yang punya post terbit di website itu.</li>
+      <li>Slug post unik per website. Slug milik website lain → <code>404</code>. <code>redirect_to</code> hanya untuk slug lama di website yang sama.</li>
+      <li>Key disimpan sebagai hash dan tampil sekali saat dibuat. Regenerate mematikan key lama seketika.</li>
+    </ul>
+
+    <h2 id="auth">Autentikasi</h2>
+    <p>Semua endpoint publik butuh header:</p>
+    <pre><code>x-api-key: &lt;API_KEY_WEBSITE&gt;</code></pre>
+    <p>Key salah, kosong, atau website belum punya key → <code>401 {"error":"Unauthorized"}</code>.</p>
+    <p>CORS hanya relevan jika browser memanggil API langsung. <code>Access-Control-Allow-Origin</code> diisi origin request, hanya bila terdaftar di website pemilik key (diatur di menu Websites, pisahkan koma bila lebih dari satu, mis. dengan dan tanpa <code>www</code>). Respons memakai <code>Vary: Origin, x-api-key</code>. Metode: <code>GET</code>, <code>OPTIONS</code>.</p>
+
+    <h2 id="respons">Respons &amp; error</h2>
+    <table>
+      <tr><th>Status</th><th>Arti</th></tr>
+      <tr><td><code>200</code></td><td>Sukses, body JSON.</td></tr>
+      <tr><td><code>304</code></td><td><code>If-None-Match</code> cocok dengan ETag. Tanpa body.</td></tr>
+      <tr><td><code>401</code></td><td><code>x-api-key</code> salah.</td></tr>
+      <tr><td><code>404</code></td><td><code>{"error":"Not found"}</code>, atau <code>{"error":"Moved","redirect_to":"slug-baru"}</code> untuk slug lama post.</td></tr>
+      <tr><td><code>500</code></td><td><code>{"error":"pesan"}</code>, kesalahan database.</td></tr>
+    </table>
+    <p>Post hanya muncul jika <code>status = published</code> dan <code>published_at</code> sudah lewat. Draft dan post terjadwal tidak pernah keluar.</p>
+
+    <h2 id="cache">Cache &amp; ETag</h2>
+    <p>Setiap respons 200 membawa:</p>
+    <pre><code>Cache-Control: public, s-maxage=60, stale-while-revalidate=300
+ETag: "&lt;hash&gt;"</code></pre>
+    <p>Kirim <code>If-None-Match: &lt;ETag&gt;</code> untuk mendapat <code>304</code>. Cache pendek hanya jaring pengaman; penyegaran utama lewat <a href="#webhook">webhook revalidate</a>.</p>
+
+    <h2 id="posts">Daftar post</h2>
+    <div class="ep"><span class="m">GET</span><code>/api/posts</code></div>
+    <p>Daftar post terbit, terbaru dulu. Tidak berisi <code>content</code>.</p>
+    <table>
+      <tr><th>Query</th><th>Default</th><th>Keterangan</th></tr>
+      <tr><td><code>page</code></td><td>1</td><td>Halaman, mulai 1.</td></tr>
+      <tr><td><code>limit</code></td><td>10</td><td>1-50.</td></tr>
+      <tr><td><code>category</code></td><td>-</td><td>Slug kategori.</td></tr>
+      <tr><td><code>tag</code></td><td>-</td><td>Satu tag (huruf kecil).</td></tr>
+      <tr><td><code>q</code></td><td>-</td><td>Cari di judul, excerpt, konten. Maks 100 karakter.</td></tr>
+    </table>
+<pre><code>{
+  "data": [
+    {
+      "id": "uuid",
+      "title": "Judul",
+      "slug": "judul",
+      "excerpt": "Ringkasan",
+      "cover_url": "https://.../cover.webp",
+      "cover_alt": "Teks alternatif",
+      "cover_width": 1200,
+      "cover_height": 630,
+      "meta_title": "Judul SEO",
+      "meta_description": "Deskripsi SEO",
+      "noindex": false,
+      "tags": ["astro", "react"],
+      "published_at": "2026-01-01T08:00:00+00:00",
+      "updated_at": "2026-01-02T09:00:00+00:00",
+      "author": { "name": "Budi", "slug": "budi" },
+      "category": { "name": "Tutorial", "slug": "tutorial" }
+    }
+  ],
+  "page": 1,
+  "limit": 10,
+  "total": 42,
+  "totalPages": 5
+}</code></pre>
+    <p><code>author</code> dan <code>category</code> bisa <code>null</code>. <code>noindex: true</code> → sembunyikan dari listing/related di frontend jika perlu.</p>
+
+    <h2 id="post">Detail post</h2>
+    <div class="ep"><span class="m">GET</span><code>/api/posts/:slug</code></div>
+<pre><code>{
+  "id": "uuid",
+  "title": "Judul",
+  "slug": "judul",
+  "excerpt": "Ringkasan",
+  "content": "&lt;h2 id=\"bagian\"&gt;...&lt;/h2&gt;&lt;p&gt;...&lt;/p&gt;",
+  "cover_url": "https://.../cover.webp",
+  "cover_alt": "Teks alternatif",
+  "cover_width": 1200,
+  "cover_height": 630,
+  "meta_title": "Judul SEO",
+  "meta_description": "Deskripsi SEO",
+  "canonical_url": null,
+  "og_image": null,
+  "noindex": false,
+  "tags": ["astro"],
+  "published_at": "2026-01-01T08:00:00+00:00",
+  "updated_at": "2026-01-02T09:00:00+00:00",
+  "author": {
+    "name": "Budi", "slug": "budi", "bio": "...",
+    "avatar_url": "https://.../budi.webp",
+    "links": ["https://x.com/budi"]
+  },
+  "category": { "name": "Tutorial", "slug": "tutorial", "description": "..." }
+}</code></pre>
+    <h3>Catatan konten</h3>
+    <ul>
+      <li><code>content</code> adalah HTML yang sudah disanitasi. Heading punya atribut <code>id</code> (untuk daftar isi). <code>&lt;img&gt;</code> punya <code>width</code>/<code>height</code> (cegah layout shift).</li>
+      <li>Link eksternal sudah ber-<code>rel="nofollow"</code>; link ke <code>SITE_URL</code> tidak.</li>
+      <li>Fallback SEO di frontend: <code>meta_title ?? title</code>, <code>meta_description ?? excerpt</code>, <code>og_image ?? cover_url</code>, <code>canonical_url ?? URL post</code>.</li>
+    </ul>
+    <h3>Slug lama</h3>
+    <p>Jika slug pernah diubah, request ke slug lama membalas:</p>
+<pre><code>404
+{ "error": "Moved", "redirect_to": "slug-baru" }</code></pre>
+    <p>Dibuat bukan 3xx supaya <code>fetch</code> tidak mengikutinya otomatis. Frontend yang memutuskan <code>301</code> (<code>permanentRedirect</code>).</p>
+
+    <h2 id="categories">Kategori</h2>
+    <div class="ep"><span class="m">GET</span><code>/api/categories</code></div>
+    <div class="ep"><span class="m">GET</span><code>/api/categories/:slug</code></div>
+<pre><code>[{ "name": "Tutorial", "slug": "tutorial", "description": "Panduan langkah demi langkah" }]</code></pre>
+    <p>Detail membalas satu objek, atau <code>404 Not found</code>.</p>
+
+    <h2 id="authors">Author</h2>
+    <div class="ep"><span class="m">GET</span><code>/api/authors</code></div>
+    <div class="ep"><span class="m">GET</span><code>/api/authors/:slug</code></div>
+<pre><code>[{
+  "name": "Budi Santoso",
+  "slug": "budi-santoso",
+  "bio": "Penulis...",
+  "avatar_url": "https://.../budi.webp",
+  "links": ["https://x.com/budi", "https://github.com/budi"]
+}]</code></pre>
+    <p>Daftar post per author/kategori: pakai <code>/api/posts?category=slug</code>. Filter author belum tersedia.</p>
+
+    <h2 id="tags">Tag</h2>
+    <div class="ep"><span class="m">GET</span><code>/api/tags</code></div>
+    <p>Diurutkan dari paling banyak dipakai. Hanya menghitung post terbit.</p>
+<pre><code>[{ "tag": "astro", "posts": 12 }, { "tag": "react", "posts": 7 }]</code></pre>
+
+    <h2 id="sitemap">Sitemap</h2>
+    <div class="ep"><span class="m">GET</span><code>/api/sitemap</code></div>
+    <p>Data ringan untuk <code>sitemap.ts</code> di Next.js. Post <code>noindex</code> sudah disaring. Maks 10.000 post.</p>
+<pre><code>{
+  "posts": [
+    { "slug": "judul", "updated_at": "...", "published_at": "...", "category": { "slug": "tutorial" } }
+  ],
+  "categories": ["tutorial"],
+  "authors": ["budi-santoso"]
+}</code></pre>
+    <div class="note">Pakai endpoint ini untuk sitemap, jangan menyusun ulang dari <code>/api/posts</code>, supaya filter <code>noindex</code> tidak terlewat.</div>
+
+    <h2 id="webhook">Webhook revalidate</h2>
+    <p>Admin memanggil Next.js saat konten berubah, agar cache segar tanpa menunggu. URL webhook diatur per website (menu Websites). Post dikirim ke website-nya saja (dan website lama bila post dipindah). Perubahan kategori/author dikirim ke semua website yang punya URL.</p>
+<pre><code>POST {revalidate_url website}
+Content-Type: application/json
+x-revalidate-secret: {REVALIDATE_SECRET}
+
+{ "type": "post" | "category" | "author", "slug": "judul", "oldSlug": "judul-lama" }</code></pre>
+    <table>
+      <tr><th>Field</th><th>Keterangan</th></tr>
+      <tr><td><code>type</code></td><td>Jenis konten yang berubah.</td></tr>
+      <tr><td><code>slug</code></td><td>Slug saat ini.</td></tr>
+      <tr><td><code>oldSlug</code></td><td>Opsional. Ada jika slug diubah, revalidate juga slug lama.</td></tr>
+    </table>
+    <p>Next.js wajib memvalidasi header secret, lalu balas <code>2xx</code>. Non-2xx atau timeout (5 detik) dicatat di log admin, tidak menggagalkan simpan. Untuk post terbit, kegagalan diulang oleh cron.</p>
+
+    <h2 id="cron">Cron publish terjadwal</h2>
+    <div class="ep"><span class="m post">POST</span><code>/api/cron/publish</code></div>
+    <p>Mengirim webhook untuk post terjadwal yang waktunya sudah tiba. Aman dipanggil berulang (maks 50 post per panggilan). <code>GET</code> juga diterima.</p>
+<pre><code>curl -X POST -H "Authorization: Bearer &lt;CRON_SECRET&gt;" https://admin.zerone.id/api/cron/publish</code></pre>
+<pre><code>200 { "processed": 2 }
+401 { "error": "Unauthorized" }   // secret salah, atau CRON_SECRET kosong (endpoint mati)</code></pre>
+    <p>Jadwalkan tiap menit lewat cron-job.org atau crontab. GitHub Actions minimal 5 menit (workflow: <code>.github/workflows/publish-scheduled.yml</code>, secret <code>CRON_SECRET</code> dan <code>ADMIN_URL</code>).</p>
+
+    <h2 id="nextjs">Contoh Next.js</h2>
+    <h3>Client: <code>lib/api.ts</code></h3>
+<pre><code>const BASE = process.env.ADMIN_API_URL!;
+const KEY = process.env.ADMIN_API_KEY!;
+
+export async function api&lt;T&gt;(path: string, tags: string[] = []): Promise&lt;{ ok: true; data: T } | { ok: false; status: number; redirectTo?: string }&gt; {
+  const res = await fetch(BASE + path, {
+    headers: { 'x-api-key': KEY },
+    next: { tags, revalidate: 3600 },
+  });
+  if (res.ok) return { ok: true, data: await res.json() };
+  const body = await res.json().catch(() =&gt; ({}));
+  return { ok: false, status: res.status, redirectTo: body.redirect_to };
+}</code></pre>
+
+    <h3>Halaman detail: <code>app/blog/[slug]/page.tsx</code></h3>
+<pre><code>import { notFound, permanentRedirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import { api } from '@/lib/api';
+
+async function getPost(slug: string) {
+  const r = await api&lt;any&gt;(`/api/posts/${slug}`, ['posts', `post:${slug}`]);
+  if (r.ok) return r.data;
+  if (r.redirectTo) permanentRedirect(`/blog/${r.redirectTo}`);
+  notFound();
+}
+
+export async function generateMetadata({ params }: { params: Promise&lt;{ slug: string }&gt; }): Promise&lt;Metadata&gt; {
+  const p = await getPost((await params).slug);
+  return {
+    title: p.meta_title ?? p.title,
+    description: p.meta_description ?? p.excerpt,
+    alternates: { canonical: p.canonical_url ?? `/blog/${p.slug}` },
+    robots: p.noindex ? { index: false, follow: true } : undefined,
+    openGraph: { images: [p.og_image ?? p.cover_url].filter(Boolean) },
+  };
+}</code></pre>
+
+    <h3>Sitemap: <code>app/sitemap.ts</code></h3>
+<pre><code>import type { MetadataRoute } from 'next';
+import { api } from '@/lib/api';
+
+export default async function sitemap(): Promise&lt;MetadataRoute.Sitemap&gt; {
+  const r = await api&lt;any&gt;('/api/sitemap', ['posts']);
+  if (!r.ok) return [];
+  const base = process.env.NEXT_PUBLIC_SITE_URL!;
+  return r.data.posts.map((p: any) =&gt; ({
+    url: `${base}/blog/${p.slug}`,
+    lastModified: p.updated_at ?? p.published_at,
+  }));
+}</code></pre>
+
+    <h3>Webhook: <code>app/api/revalidate/route.ts</code></h3>
+<pre><code>import { revalidateTag } from 'next/cache';
+
+export async function POST(req: Request) {
+  if (req.headers.get('x-revalidate-secret') !== process.env.REVALIDATE_SECRET)
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const { type, slug, oldSlug } = await req.json();
+  revalidateTag('posts');
+  for (const s of [slug, oldSlug].filter(Boolean)) revalidateTag(`${type}:${s}`);
+  return Response.json({ revalidated: true });
+}</code></pre>
+    <div class="note">Di Next.js 16, <code>revalidateTag</code> butuh argumen kedua (profil cache), mis. <code>revalidateTag('posts', 'max')</code>. Sesuaikan dengan versi yang dipakai.</div>
+
+    <h3>Dikerjakan di sisi Next.js</h3>
+    <p>Related posts, prev/next, <code>reading_time</code>, daftar isi (dari <code>id</code> heading), JSON-LD (<code>Article</code>, <code>BreadcrumbList</code>), <code>generateMetadata</code>, <code>sitemap.ts</code>, <code>robots.ts</code>.</p>
+
+    <h2 id="env">Environment</h2>
+    <table>
+      <tr><th>Admin (.env)</th><th>Fungsi</th></tr>
+      <tr><td><code>SITE_URL</code></td><td>URL web utama. Link ke host ini tanpa <code>nofollow</code>.</td></tr>
+      <tr><td><code>REVALIDATE_SECRET</code></td><td>Dikirim di header <code>x-revalidate-secret</code>. Dipakai bersama semua website. Kosong = webhook mati.</td></tr>
+      <tr><td><code>CRON_SECRET</code></td><td>Bearer token untuk <code>/api/cron/publish</code>. Kosong = endpoint mati.</td></tr>
+    </table>
+    <table>
+      <tr><th>Next.js (.env)</th><th>Isi</th></tr>
+      <tr><td><code>ADMIN_API_URL</code></td><td>Base URL admin, tanpa slash di akhir.</td></tr>
+      <tr><td><code>ADMIN_API_KEY</code></td><td>API key website ini (menu Websites di admin). Tiap Next.js punya key sendiri.</td></tr>
+      <tr><td><code>REVALIDATE_SECRET</code></td><td>Sama dengan admin.</td></tr>
+      <tr><td><code>NEXT_PUBLIC_SITE_URL</code></td><td>URL web utama.</td></tr>
+    </table>
+  </main>
+</div>
+
+<script>
+  function checkPwd() {
+    const pwd = document.getElementById('pwd').value;
+    const correctPwd = 'zerone-blog';
+    
+    if (pwd === correctPwd) {
+      // Hide login overlay
+      document.getElementById('login-overlay').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('login-overlay').style.display = 'none';
+      }, 300);
+      
+      // Show main content
+      const appContent = document.getElementById('app-content');
+      // Use class logic for responsive layout handling
+      if (window.innerWidth <= 800) {
+        appContent.style.display = 'flex';
+      } else {
+        appContent.style.display = 'block';
+      }
+      appContent.classList.add('active');
+    } else {
+      document.getElementById('error-msg').style.display = 'block';
+    }
+  }
+
+  // Trigger login when Enter key is pressed
+  document.getElementById('pwd').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      checkPwd();
+    }
+  });
+</script>
+
+</body>
+</html>

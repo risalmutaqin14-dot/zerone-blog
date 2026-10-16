@@ -1,63 +1,223 @@
 ---
-import '../styles/dashboard.css';
-import { LayoutDashboard, PenSquare, Table2, Tags, LogOut } from 'lucide-react';
+import "../styles/dashboard.css";
+import {
+    LayoutDashboard,
+    PenSquare,
+    Table2,
+    Tags,
+    UserPen,
+    Globe,
+    LogOut,
+    ChevronsLeft,
+} from "lucide-react";
 
-interface Props { title: string; subtitle?: string }
+interface Props {
+    title: string;
+    subtitle?: string;
+}
 const { title, subtitle } = Astro.props;
 const path = Astro.url.pathname;
+const user = Astro.locals.user;
 
 const nav = [
-  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, active: path === '/dashboard' },
-  { href: '/dashboard/posts/new', label: 'Create Blog', icon: PenSquare, active: path === '/dashboard/posts/new' },
-  { href: '/dashboard/posts', label: 'List Blog', icon: Table2, active: path === '/dashboard/posts' || /^\/dashboard\/posts\/[^/]+\/edit/.test(path) },
-  { href: '/dashboard/categories', label: 'Categories', icon: Tags, active: path.startsWith('/dashboard/categories') },
-];
+    {
+        href: "/dashboard",
+        label: "Overview",
+        icon: LayoutDashboard,
+        active: path === "/dashboard",
+    },
+    {
+        href: "/dashboard/posts/new",
+        label: "Create Blog",
+        icon: PenSquare,
+        active: path === "/dashboard/posts/new",
+    },
+    {
+        href: "/dashboard/posts",
+        label: "List Blog",
+        icon: Table2,
+        active:
+            path === "/dashboard/posts" ||
+            /^\/dashboard\/posts\/[^/]+\/edit/.test(path),
+    },
+    {
+        href: "/dashboard/categories",
+        label: "Categories",
+        icon: Tags,
+        active: path.startsWith("/dashboard/categories"),
+    },
+    {
+        href: "/dashboard/authors",
+        label: "Users",
+        icon: UserPen,
+        active: path.startsWith("/dashboard/authors"),
+    },
+    {
+        href: "/dashboard/websites",
+        label: "Websites",
+        icon: Globe,
+        active: path.startsWith("/dashboard/websites"),
+        superOnly: true,
+    },
+].filter((n) => !n.superOnly || user?.role === "superadmin"); // hanya tampilan; penolakan sebenarnya di middleware
 ---
 
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>{title} | Minor Moon CMS</title>
-  </head>
-  <body class="min-h-screen bg-slate-100 text-slate-800">
-    <aside class="fixed inset-y-0 left-0 w-64 bg-slate-950 text-slate-300 hidden lg:flex flex-col p-5 overflow-hidden">
-      <div class="absolute -top-24 -left-24 size-64 rounded-full bg-indigo-600/30 blur-3xl pointer-events-none"></div>
-      <div class="relative flex items-center gap-3 mb-10">
-        <div class="size-10 rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 grid place-items-center">🌙</div>
-        <span class="font-bold text-white text-lg">Minor Moon</span>
-      </div>
-      <nav class="relative flex-1 space-y-1" aria-label="Menu utama">
-        {nav.map(({ href, label, icon: Icon, active }) => (
-          <a href={href} aria-current={active ? 'page' : undefined}
-            class:list={['flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition',
-              active ? 'bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white shadow-lg shadow-indigo-500/20' : 'hover:bg-white/5 hover:text-white']}>
-            <Icon size={18} /> {label}
-          </a>
-        ))}
-      </nav>
-      <form method="post" action="/api/auth/logout" class="relative">
-        <button class="w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-white/5 hover:text-white transition">
-          <LogOut size={18} /> Keluar
-        </button>
-      </form>
-    </aside>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex" />
+        <link rel="icon" type="image/png" href="/logo.png" />
+        <title>{title} | Blog Zerone CMS</title>
+        <script is:inline>
+            if (localStorage.getItem("sb") === "collapsed")
+                document.documentElement.dataset.sb = "collapsed";
+        </script>
+    </head>
+    <body class="min-h-screen bg-linear-to-b from-sky-100/80 via-slate-100 to-slate-100 bg-no-repeat text-slate-800">
+        <aside
+            id="sidebar"
+            class="sb fixed inset-y-0 left-0 z-30 hidden lg:flex flex-col p-3 overflow-hidden text-slate-300 bg-linear-to-b from-[#0b2a36] via-[#0a1f2b] to-[#07141d] border-r border-white/5"
+        >
+            <div class="absolute -top-24 -left-24 size-64 rounded-full bg-brand-1/40 blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 size-64 rounded-full bg-brand-2/25 blur-3xl pointer-events-none"></div>
 
-    <div class="lg:pl-64">
-      <header class="lg:hidden sticky top-0 z-20 bg-slate-950 px-4 py-3 flex gap-1 overflow-x-auto">
-        {nav.map(({ href, label, active }) => (
-          <a href={href} class:list={['whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium', active ? 'bg-indigo-500 text-white' : 'text-slate-300']}>{label}</a>
-        ))}
-      </header>
-      <main class="p-4 sm:p-8 max-w-6xl mx-auto">
-        <div class="mb-8">
-          <h1 class="text-3xl font-bold tracking-tight text-slate-900">{title}</h1>
-          {subtitle && <p class="text-slate-500 mt-1">{subtitle}</p>}
+            <div class="relative flex items-center gap-3 px-2 h-12 mb-6">
+                <img
+                    src="/logo.png"
+                    alt="Blog Zerone"
+                    class="size-10 shrink-0 rounded-xl object-contain"
+                />
+                <span class="sb-label font-bold text-white text-lg whitespace-nowrap">
+                    Blog Zerone
+                </span>
+            </div>
+
+            <nav class="relative flex-1 space-y-1" aria-label="Menu utama">
+                {nav.map(({ href, label, icon: Icon, active }) => (
+                    <a
+                        href={href}
+                        title={label}
+                        aria-current={active ? "page" : undefined}
+                        class:list={[
+                            "sb-item flex items-center gap-3 rounded-xl px-3 h-11 text-sm font-medium transition",
+                            active
+                                ? "bg-linear-to-r from-brand-1 to-brand-2 text-white shadow-lg shadow-brand-1/30 ring-1 ring-white/20"
+                                : "hover:bg-white/10 hover:text-white",
+                        ]}
+                    >
+                        <Icon size={20} className="shrink-0" />
+                        <span class="sb-label whitespace-nowrap">{label}</span>
+                    </a>
+                ))}
+            </nav>
+
+            {user && (
+                <div class="sb-label relative mb-2 truncate rounded-xl bg-white/5 px-3 py-2 text-xs">
+                    <p class="truncate font-semibold text-white">{user.name}</p>
+                    <p class="truncate text-slate-400">{user.role}</p>
+                </div>
+            )}
+
+            <form method="post" action="/api/auth/logout" class="relative">
+                <button
+                    title="Keluar"
+                    class="sb-item w-full flex items-center gap-3 rounded-xl px-3 h-11 text-sm font-medium hover:bg-red-500/15 hover:text-red-300 transition"
+                >
+                    <LogOut size={20} className="shrink-0" />
+                    <span class="sb-label whitespace-nowrap">Keluar</span>
+                </button>
+            </form>
+
+            <button
+                id="sb-collapse"
+                type="button"
+                title="Ciutkan / buka sidebar"
+                aria-label="Ciutkan atau buka sidebar"
+                class="sb-item relative mt-2 flex items-center gap-3 rounded-xl px-3 h-11 text-sm font-medium bg-white/5 hover:bg-white/10 hover:text-white transition"
+            >
+                <ChevronsLeft
+                    size={20}
+                    className="sb-chevron shrink-0 transition-transform"
+                />
+                <span class="sb-label whitespace-nowrap">Ciutkan</span>
+            </button>
+        </aside>
+
+        <div class="main-wrap">
+            <header class="lg:hidden sticky top-0 z-20 bg-[#0a1f2b] px-4 py-3 flex gap-1 overflow-x-auto">
+                {nav.map(({ href, label, active }) => (
+                    <a
+                        href={href}
+                        class:list={[
+                            "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium",
+                            active ? "bg-brand-1 text-white" : "text-slate-300",
+                        ]}
+                    >
+                        {label}
+                    </a>
+                ))}
+            </header>
+            <main class="p-4 sm:p-8 max-w-full lg:max-w-[85%] mx-auto">
+                <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight text-slate-900">
+                            {title}
+                        </h1>
+                        <div class="mt-2 h-1 w-12 rounded-full bg-linear-to-r from-brand-1 to-brand-2"></div>
+                        {subtitle && <p class="text-slate-500 mt-2">{subtitle}</p>}
+                    </div>
+                    <slot name="actions" />
+                </div>
+                <slot />
+            </main>
         </div>
-        <slot />
-      </main>
-    </div>
-  </body>
+
+        <script is:inline>
+            document
+                .getElementById("sb-collapse")
+                .addEventListener("click", () => {
+                    const d = document.documentElement.dataset;
+                    if (d.sb === "collapsed") {
+                        delete d.sb;
+                        localStorage.removeItem("sb");
+                    } else {
+                        d.sb = "collapsed";
+                        localStorage.setItem("sb", "collapsed");
+                    }
+                });
+        </script>
+    </body>
 </html>
+
+<style is:global>
+    :root {
+        --sb-w: 16rem;
+    }
+    :root[data-sb="collapsed"] {
+        --sb-w: 4.5rem;
+    }
+    .sb {
+        width: var(--sb-w);
+        transition: width 0.25s ease;
+    }
+    .main-wrap {
+        transition: padding 0.25s ease;
+    }
+    @media (min-width: 1024px) {
+        .main-wrap {
+            padding-left: var(--sb-w);
+        }
+    }
+    :root[data-sb="collapsed"] .sb-label {
+        display: none;
+    }
+    :root[data-sb="collapsed"] .sb-item {
+        justify-content: center;
+        padding-inline: 0;
+    }
+    :root[data-sb="collapsed"] .sb-chevron {
+        transform: rotate(180deg);
+    }
+</style>

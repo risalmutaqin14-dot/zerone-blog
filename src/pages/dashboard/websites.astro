@@ -1,0 +1,23 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import WebsiteManager from "../../components/WebsiteManager.jsx";
+import { admin } from "../../db/admin";
+
+// api_key_hash tidak dikirim ke client, hanya penanda has_key.
+const { data } = await admin
+    .from("websites")
+    .select("id,name,slug,allowed_origin,revalidate_url,api_key_hash,posts(count)")
+    .order("name");
+const items = (data ?? []).map(({ api_key_hash, posts, ...w }: any) => ({
+    ...w,
+    has_key: !!api_key_hash,
+    posts: posts?.[0]?.count ?? 0,
+}));
+---
+
+<DashboardLayout
+    title="Websites"
+    subtitle="Satu API key per website. Website hanya melihat post miliknya."
+>
+    <WebsiteManager client:load items={items} />
+</DashboardLayout>

@@ -1,0 +1,41 @@
+/*
+ * Gaya tabel artikel untuk website publik (Next.js).
+ * Tempel ke globals.css. Ganti `.article` dengan class pembungkus isi artikel
+ * (elemen yang menerima dangerouslySetInnerHTML).
+ * Tabel dikirim API sebagai <table><thead><tr><th> ... <tbody><tr><td>, tanpa wrapper scroll,
+ * jadi `display: block` + overflow-x dipakai agar tabel lebar tetap bisa digeser di layar kecil.
+ */
+.article table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px -6px rgba(15, 23, 42, 0.12);
+  font-size: 0.925em;
+  line-height: 1.5;
+}
+.article th,
+.article td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #eef2f6;
+  min-width: 5rem;
+}
+.article th {
+  background: linear-gradient(135deg, #1e98c0, #3ca9be);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.78em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 0;
+}
+.article tbody tr:nth-child(even) td { background: #f8fafc; }
+.article tbody tr:hover td { background: rgba(30, 152, 192, 0.07); }
+.article tbody tr:last-child td { border-bottom: 0; }
+.article td > p, .article th > p { margin: 0; }

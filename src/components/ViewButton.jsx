@@ -12,7 +12,6 @@ const Row = ({ label, children }) => (
 );
 
 // Tombol lihat + popup detail post. Konten sudah di-sanitize server saat disimpan.
-// ponytail: author statis "Admin" (schema belum punya kolom author); tambah kolom bila multi-user.
 export default function ViewButton({ id, label }) {
   const [open, setOpen] = useState(false);
   const [post, setPost] = useState(null);
@@ -53,24 +52,31 @@ export default function ViewButton({ id, label }) {
                 <div className="space-y-5">
                   <h2 className="text-2xl font-bold text-slate-900">{post.title}</h2>
                   <dl className="grid gap-4 sm:grid-cols-2">
-                    <Row label="Author">Admin</Row>
+                    <Row label="Website">{post.website?.name ?? '-'}</Row>
+                    <Row label="Slug"><span className="font-mono">{post.slug}</span></Row>
+                    <Row label="Status">{post.status}</Row>
+                    <Row label="Penulis">{post.author?.name ?? '-'}</Row>
                     <Row label="Kategori">{post.category?.name ?? '-'}</Row>
+                    <Row label="Publish at">{fmt(post.published_at)}</Row>
                     <Row label="Created at">{fmt(post.created_at)}</Row>
                     <Row label="Modified at">{fmt(post.updated_at)}</Row>
                     <Row label="Tag">
                       {post.tags?.length
-                        ? <span className="flex flex-wrap gap-1">{post.tags.map((t) => <span key={t} className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">#{t}</span>)}</span>
+                        ? <span className="flex flex-wrap gap-1">{post.tags.map((t) => <span key={t} className="rounded-md bg-brand-1/10 px-1.5 py-0.5 text-xs text-brand-1">#{t}</span>)}</span>
                         : '-'}
                     </Row>
                   </dl>
-                  <Row label="Meta image">
+                  <Row label="Meta title">{post.meta_title || '-'}</Row>
+                  <Row label="Meta description">{post.meta_description || '-'}</Row>
+                  <Row label="Cover">
                     {post.cover_url
-                      ? <img src={post.cover_url} alt="" className="max-h-64 rounded-xl object-cover ring-1 ring-slate-200" />
+                      ? <img src={post.cover_url} alt={post.cover_alt} className="max-h-64 rounded-xl object-cover ring-1 ring-slate-200" />
                       : '-'}
                   </Row>
+                  <Row label="Alt text gambar">{post.cover_alt || '-'}</Row>
                   <Row label="Excerpt"><p className="whitespace-pre-line">{post.excerpt || '-'}</p></Row>
                   <Row label="Konten">
-                    <div className="tiptap !min-h-0 !p-0" dangerouslySetInnerHTML={{ __html: post.content || '-' }} />
+                    <div className="tiptap min-h-0! p-0!" dangerouslySetInnerHTML={{ __html: post.content || '-' }} />
                   </Row>
                 </div>
               )}

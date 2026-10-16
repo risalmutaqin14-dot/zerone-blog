@@ -1,13 +1,19 @@
 import type { APIRoute } from 'astro';
 import { admin } from '../../../../db/admin';
 import { dbError, json } from '../../../../lib/posts';
-import { slugify } from '../../../../lib/slug.js';
+import { revalidate } from '../../../../lib/revalidate';
+import { parseCategory } from '../../../../lib/taxonomy';
+
+export const GET: APIRoute = async () => {
+  const { data, error } = await admin.from('categories').select('id,name,slug,description,created_at').order('name');
+  return error ? dbError(error) : json(data);
+};
 
 export const POST: APIRoute = async ({ request }) => {
-  const b = await request.json().catch(() => null);
-  const name = String(b?.name ?? '').trim().slice(0, 60);
-  const slug = slugify(b?.slug || name);
-  if (!name || !slug) return json({ error: 'Nama wajib diisi' }, 400);
-  const { data, error } = await admin.from('categories').insert({ name, slug }).select().single();
-  return error ? dbError(error) : json(data, 201);
+  const parsed = parseCategory(await request.json().catch(() => null));
+  if ('error' in parsed) return json(parsed, 400);
+  const { data, error } = await admin.from('categories').insert(parsed.data).select().single();
+  if (error) return dbError(error);
+  await revalidate({ type: 'category', slug: data.slug });
+  return json(data, 201);
 };
