@@ -37,7 +37,7 @@ Panggil tiap menit dari crontab server:
 * * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://admin.zerone.id/api/cron/publish
 ```
 
-Jangan pakai GitHub Actions: jadwal tiap 5 menit menghabiskan kuota menit gratis.
+Setup lengkap (script, logrotate): `docs/CRON.md`. Jangan pakai GitHub Actions: jadwal tiap 5 menit menghabiskan kuota menit gratis.
 
 ### Webhook revalidate
 
