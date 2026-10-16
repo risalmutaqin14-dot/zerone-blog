@@ -1,5 +1,5 @@
 import sanitizeHtml from 'sanitize-html';
-import { SITE_URL } from 'astro:env/server';
+import { admin } from '../db/admin';
 import { slugify } from './slug.js';
 import { isHttp } from './taxonomy';
 
@@ -12,18 +12,17 @@ export const json = (data: unknown, status = 200, headers: Record<string, string
     headers: { 'Content-Type': 'application/json', ...headers },
   });
 
-const siteHost = (() => {
-  try { return new URL(SITE_URL).host; } catch { return ''; }
-})();
+// Host milik website si post (websites.allowed_origin, pisah koma). Link ke host ini = internal, tanpa nofollow.
+const hostsOf = (origins = '') => origins.split(',').flatMap((o) => { try { return [new URL(o.trim()).host]; } catch { return []; } });
 
-const isInternal = (href = '') => {
+const isInternal = (href = '', hosts: string[] = []) => {
   if (href.startsWith('#') || (href.startsWith('/') && !href.startsWith('//'))) return true;
-  try { return !!siteHost && new URL(href).host === siteHost; } catch { return false; }
+  try { return hosts.includes(new URL(href).host); } catch { return false; }
 };
 
 // Link internal: tanpa nofollow. Eksternal: nofollow. rel dari editor selalu dibuang.
-const fixLink = (tagName: string, { rel: _rel, ...attribs }: sanitizeHtml.Attributes) => {
-  const rel = isInternal(attribs.href) ? (attribs.target === '_blank' ? 'noopener' : '') : 'noopener noreferrer nofollow';
+const fixLink = (hosts: string[]) => (tagName: string, { rel: _rel, ...attribs }: sanitizeHtml.Attributes) => {
+  const rel = isInternal(attribs.href, hosts) ? (attribs.target === '_blank' ? 'noopener' : '') : 'noopener noreferrer nofollow';
   return { tagName, attribs: rel ? { ...attribs, rel } : attribs };
 };
 
@@ -51,14 +50,14 @@ const addHeadingIds = (html: string) => {
   });
 };
 
-export const cleanHtml = (html: string) =>
+export const cleanHtml = (html: string, hosts: string[] = []) =>
   addHeadingIds(
     sanitizeHtml(html, {
       allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'u', 's', 'mark', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'hr', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
       allowedAttributes: { a: ['href', 'target', 'rel'], img: ['src', 'alt', 'width', 'height'], p: ['style'], h1: ['style'], h2: ['style'], h3: ['style'], h4: ['style'], th: ['colspan', 'rowspan'], td: ['colspan', 'rowspan'] },
       allowedStyles: { '*': { 'text-align': [/^(left|center|right|justify)$/] } },
       allowedSchemes: ['http', 'https', 'mailto'],
-      transformTags: { a: fixLink, img: fixImg, th: fixSpan, td: fixSpan },
+      transformTags: { a: fixLink(hosts), img: fixImg, th: fixSpan, td: fixSpan },
     }),
   );
 
@@ -68,7 +67,7 @@ const dim = (v: unknown) => {
 };
 
 // Validasi + normalisasi payload post. Return { error } atau { data }.
-export function parsePost(b: any): { error: string } | { data: Record<string, unknown> } {
+export async function parsePost(b: any): Promise<{ error: string } | { data: Record<string, unknown> }> {
   const title = String(b?.title ?? '').trim();
   if (!title) return { error: 'Judul wajib diisi' };
   if (title.length > 200) return { error: 'Judul maksimal 200 karakter' };
@@ -97,12 +96,14 @@ export function parsePost(b: any): { error: string } | { data: Record<string, un
 
   const tags = [...new Set((Array.isArray(b.tags) ? b.tags : []).map((t: unknown) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 10);
 
+  const { data: site } = await admin.from('websites').select('allowed_origin').eq('id', b.website_id).maybeSingle();
+
   return {
     data: {
       title,
       slug,
       excerpt: String(b.excerpt ?? '').trim().slice(0, 500),
-      content: cleanHtml(String(b.content ?? '')),
+      content: cleanHtml(String(b.content ?? ''), hostsOf(site?.allowed_origin)),
       cover_url: cover || null,
       cover_alt: String(b.cover_alt ?? '').trim().slice(0, 200),
       cover_width: cover && w && h ? w : null,

@@ -22,8 +22,7 @@ Satu admin melayani banyak website. Tiap website punya API key sendiri (menu **W
 
 | Variabel | Fungsi |
 | :-- | :-- |
-| (tidak ada) | Login memakai akun di tabel `authors` (email + password scrypt). `ADMIN_PASSWORD` dan `SESSION_SECRET` sudah dihapus: boleh dibuang dari env. Superadmin pertama: `node --env-file=.env scripts/create-superadmin.mjs <email> "<Nama>"` |
-| `SITE_URL` | Host web utama; link ke host ini tanpa `nofollow` |
+| (tidak ada) | Login memakai akun di tabel `authors` (email + password scrypt). `ADMIN_PASSWORD`, `SESSION_SECRET`, `SITE_URL` sudah dihapus: boleh dibuang dari env. Superadmin pertama: `node --env-file=.env scripts/create-superadmin.mjs <email> "<Nama>"` |
 | `REVALIDATE_SECRET` | Header webhook revalidate (dipakai semua website). URL webhook diatur per website di menu Websites. Kosong = mati |
 | `CRON_SECRET` | Kosong = endpoint cron mati |
 | `SUPABASE_SERVICE_ROLE_KEY` | Akses DB |

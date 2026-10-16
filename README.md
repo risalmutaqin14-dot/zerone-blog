@@ -1,63 +1,44 @@
-# Astro Starter Kit: Blog
+# blog-zerone
+
+Admin blog multi-website (EduNav, Latihan, Zerone). Astro SSR + Supabase. Dokumentasi API: `docs/API.md`, `docs/api-docs.md`.
+
+## Deploy
+
+Butuh Node >= 22.12.
 
 ```sh
-npm create astro@latest -- --template blog
+npm ci && npm run build
+HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+**Jalankan satu proses saja.** Batas percobaan login per IP disimpan di memori. Dua proses = hitungan terpisah, batas jadi longgar.
 
-Features:
+### Urutan pertama kali
 
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and Open Graph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
+1. Jalankan `supabase/schema.sql` di SQL Editor Supabase.
+2. Buat superadmin: `node --env-file=.env scripts/create-superadmin.mjs <email> "<Nama>"`
+3. Deploy.
+4. Isi API key, origin, dan URL webhook tiap website di menu Websites.
 
-## 🚀 Project Structure
+### Env
 
-Inside of your Astro project, you'll see the following folders and files:
+| Variabel | Fungsi |
+| :-- | :-- |
+| `PUBLIC_SUPABASE_URL` | URL project Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Kunci service role. Rahasia, jangan di-commit |
+| `REVALIDATE_SECRET` | Dikirim di header `x-revalidate-secret` ke webhook tiap website. Harus sama dengan di Next.js. Kosong = webhook mati |
+| `CRON_SECRET` | Bearer token untuk `/api/cron/publish`. Kosong = endpoint mati |
 
-```text
-├── public/
-├── src/
-│   ├── assets/
-│   ├── components/
-│   ├── content/
-│   ├── layouts/
-│   └── pages/
-├── astro.config.mjs
-├── README.md
-├── package.json
-└── tsconfig.json
+### Cron post terjadwal
+
+Panggil tiap menit dari crontab server:
+
+```
+* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://admin.zerone.id/api/cron/publish
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Jangan pakai GitHub Actions: jadwal tiap 5 menit menghabiskan kuota menit gratis.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+### Webhook revalidate
 
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
-
-## Credit
-
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).
+`revalidate_url` tiap website (menu Websites) harus alamat publik situs Next.js, mis. `https://zerone.id/api/revalidate`. Route itu harus sudah ter-deploy di situs tujuan.

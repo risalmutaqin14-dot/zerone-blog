@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ params }) => {
 };
 
 export const PUT: APIRoute = async ({ request, params }) => {
-  const parsed = parsePost(await request.json().catch(() => null));
+  const parsed = await parsePost(await request.json().catch(() => null));
   if ('error' in parsed) return json(parsed, 400);
   const id = params.id!;
   const newSlug = parsed.data.slug as string;

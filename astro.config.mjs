@@ -11,7 +11,7 @@ import node from '@astrojs/node';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://example.com',
+  site: 'https://admin.zerone.id',
   output: 'server',
   integrations: [mdx(), sitemap(), react()],
 
@@ -19,8 +19,6 @@ export default defineConfig({
     schema: {
       SUPABASE_SERVICE_ROLE_KEY: envField.string({ context: 'server', access: 'secret' }),
       // API key & origin per website ada di tabel `websites` (menu Websites), bukan di env.
-      // URL web utama (Next.js). Link ke host ini dianggap internal -> tanpa nofollow.
-      SITE_URL: envField.string({ context: 'server', access: 'secret', default: '' }),
       // Webhook revalidate: URL per website (kolom websites.revalidate_url). Secret dipakai bersama.
       REVALIDATE_SECRET: envField.string({ context: 'server', access: 'secret', default: '' }),
       // Secret untuk GET/POST /api/cron/publish (dipanggil scheduler eksternal). Kosong = endpoint mati.

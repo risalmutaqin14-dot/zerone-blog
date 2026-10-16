@@ -7,7 +7,7 @@ import { revalidatePost } from '../../../lib/revalidate';
 
 const same = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
-// Panggil tiap menit dari scheduler eksternal (cron-job.org, GitHub Actions, crontab):
+// Panggil tiap menit dari scheduler eksternal (crontab server, cron-job.org):
 //   curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://admin/api/cron/publish
 // Mengirim webhook untuk post terjadwal yang waktunya sudah tiba. Aman dipanggil berulang.
 const run: APIRoute = async ({ request }) => {

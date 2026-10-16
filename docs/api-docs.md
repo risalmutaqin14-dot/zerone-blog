@@ -137,7 +137,7 @@ Daftar post terbit, terbaru dulu. Tidak berisi `content`.
 ### Catatan konten
 
 - `content` adalah HTML yang sudah disanitasi. Heading punya atribut `id` (untuk daftar isi). `<img>` punya `width`/`height` (cegah layout shift).
-- Link eksternal sudah ber-`rel="nofollow"`; link ke `SITE_URL` tidak.
+- Link eksternal sudah ber-`rel="nofollow"`; link ke host `allowed_origin` website si post tidak.
 - Fallback SEO di frontend: `meta_title ?? title`, `meta_description ?? excerpt`, `og_image ?? cover_url`, `canonical_url ?? URL post`.
 
 ### Slug lama
@@ -240,7 +240,7 @@ curl -X POST -H "Authorization: Bearer <CRON_SECRET>" https://admin.zerone.id/ap
 401 { "error": "Unauthorized" }   // secret salah, atau CRON_SECRET kosong (endpoint mati)
 ```
 
-Jadwalkan tiap menit lewat cron-job.org atau crontab. GitHub Actions minimal 5 menit (workflow: `.github/workflows/publish-scheduled.yml`, secret `CRON_SECRET` dan `ADMIN_URL`).
+Jadwalkan tiap menit lewat cron-job.org atau crontab. Contoh crontab server: `* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://admin.zerone.id/api/cron/publish`. Jangan pakai GitHub Actions (jadwal tiap 5 menit menghabiskan kuota menit gratis).
 
 ## Contoh Next.js
 
@@ -329,7 +329,6 @@ Related posts, prev/next, `reading_time`, daftar isi (dari `id` heading), JSON-L
 
 | Admin (.env) | Fungsi |
 | :-- | :-- |
-| `SITE_URL` | URL web utama. Link ke host ini tanpa `nofollow`. |
 | `REVALIDATE_SECRET` | Dikirim di header `x-revalidate-secret`. Dipakai bersama semua website. Kosong = webhook mati. |
 | `CRON_SECRET` | Bearer token untuk `/api/cron/publish`. Kosong = endpoint mati. |
 

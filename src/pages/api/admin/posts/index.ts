@@ -33,7 +33,7 @@ export const GET: APIRoute = async ({ url }) => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
-  const parsed = parsePost(await request.json().catch(() => null));
+  const parsed = await parsePost(await request.json().catch(() => null));
   if ('error' in parsed) return json(parsed, 400);
   const { data, error } = await admin.from('posts').insert(parsed.data).select('id').single();
   if (error) return dbError(error);
