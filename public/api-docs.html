@@ -151,8 +151,8 @@
     <p class="lead">API publik read-only untuk menyajikan blog/artikel ke website utama (Next.js). Admin hanya mengelola konten.</p>
 
     <h2 id="mulai">Mulai</h2>
-    <p>Base URL: URL deploy admin, mis. <code>https://admin.zerone.id</code>. Semua path di bawah relatif terhadap base URL.</p>
-    <pre><code>curl -H "x-api-key: &lt;API_KEY_WEBSITE&gt;" https://admin.zerone.id/api/posts</code></pre>
+    <p>Base URL: URL deploy admin, mis. <code>https://astro.zerone.id</code>. Semua path di bawah relatif terhadap base URL.</p>
+    <pre><code>curl -H "x-api-key: &lt;API_KEY_WEBSITE&gt;" https://astro.zerone.id/api/posts</code></pre>
     <div class="note warn"><b>Panggil dari server.</b> Jangan taruh API key di kode browser atau variabel <code>NEXT_PUBLIC_*</code>. Pakai Server Component, route handler, atau <code>generateStaticParams</code>.</div>
 
     <h2 id="multisite">Multi-website</h2>
@@ -318,7 +318,7 @@ x-revalidate-secret: {REVALIDATE_SECRET}
     <h2 id="cron">Cron publish terjadwal</h2>
     <div class="ep"><span class="m post">POST</span><code>/api/cron/publish</code></div>
     <p>Mengirim webhook untuk post terjadwal yang waktunya sudah tiba. Aman dipanggil berulang (maks 50 post per panggilan). <code>GET</code> juga diterima.</p>
-<pre><code>curl -X POST -H "Authorization: Bearer &lt;CRON_SECRET&gt;" https://admin.zerone.id/api/cron/publish</code></pre>
+<pre><code>curl -X POST -H "Authorization: Bearer &lt;CRON_SECRET&gt;" https://astro.zerone.id/api/cron/publish</code></pre>
 <pre><code>200 { "processed": 2 }
 401 { "error": "Unauthorized" }   // secret salah, atau CRON_SECRET kosong (endpoint mati)</code></pre>
     <p>Jadwalkan tiap menit lewat cron-job.org atau crontab. GitHub Actions minimal 5 menit (workflow: <code>.github/workflows/publish-scheduled.yml</code>, secret <code>CRON_SECRET</code> dan <code>ADMIN_URL</code>).</p>

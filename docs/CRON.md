@@ -2,6 +2,8 @@
 
 Dijalankan di server Linux, bukan di repo. Panggil `/api/cron/publish` tiap menit.
 
+> **Produksi (Axiom, astro.zerone.id) sudah terpasang:** crontab user `zerone` menjalankan `/var/www/html/zerone-blog/shared/cron-publish.sh` tiap menit, langsung ke `http://127.0.0.1:3004/api/cron/publish`; log hanya error/yang diproses di `~/logs/zerone-blog-cron.log`. Jangan pasang langkah di bawah lagi di Axiom (endpoint jadi dipanggil dua kali). Panduan di bawah untuk server lain.
+
 ## 1. Simpan secret (permission 600)
 
 ```sh
@@ -16,7 +18,7 @@ Nilainya harus sama dengan `CRON_SECRET` di env admin.
 ```sh
 #!/bin/sh
 . /etc/default/publish
-curl -fsS -m 30 -X POST "https://admin.zerone.id/api/cron/publish" \
+curl -fsS -m 30 -X POST "https://astro.zerone.id/api/cron/publish" \
   -H "Authorization: Bearer ${CRON_SECRET}" >> /var/log/cron-publish.log 2>&1
 echo >> /var/log/cron-publish.log
 ```

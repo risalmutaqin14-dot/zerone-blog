@@ -4,10 +4,10 @@ API publik read-only untuk menyajikan blog/artikel ke website utama (Next.js). A
 
 ## Mulai
 
-Base URL: URL deploy admin, mis. `https://admin.zerone.id`. Semua path di bawah relatif terhadap base URL.
+Base URL: URL deploy admin, mis. `https://astro.zerone.id`. Semua path di bawah relatif terhadap base URL.
 
 ```sh
-curl -H "x-api-key: <API_KEY_WEBSITE>" https://admin.zerone.id/api/posts
+curl -H "x-api-key: <API_KEY_WEBSITE>" https://astro.zerone.id/api/posts
 ```
 
 > **Panggil dari server.** Jangan taruh API key di kode browser atau variabel `NEXT_PUBLIC_*`. Pakai Server Component, route handler, atau `generateStaticParams`.
@@ -232,7 +232,7 @@ Next.js wajib memvalidasi header secret, lalu balas `2xx`. Non-2xx atau timeout 
 Mengirim webhook untuk post terjadwal yang waktunya sudah tiba. Aman dipanggil berulang (maks 50 post per panggilan).
 
 ```sh
-curl -X POST -H "Authorization: Bearer <CRON_SECRET>" https://admin.zerone.id/api/cron/publish
+curl -X POST -H "Authorization: Bearer <CRON_SECRET>" https://astro.zerone.id/api/cron/publish
 ```
 
 ```
@@ -240,7 +240,7 @@ curl -X POST -H "Authorization: Bearer <CRON_SECRET>" https://admin.zerone.id/ap
 401 { "error": "Unauthorized" }   // secret salah, atau CRON_SECRET kosong (endpoint mati)
 ```
 
-Jadwalkan tiap menit lewat cron-job.org atau crontab. Contoh crontab server: `* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://admin.zerone.id/api/cron/publish`. Jangan pakai GitHub Actions (jadwal tiap 5 menit menghabiskan kuota menit gratis).
+Jadwalkan tiap menit lewat cron-job.org atau crontab. Contoh crontab server: `* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://astro.zerone.id/api/cron/publish`. Jangan pakai GitHub Actions (jadwal tiap 5 menit menghabiskan kuota menit gratis).
 
 ## Contoh Next.js
 

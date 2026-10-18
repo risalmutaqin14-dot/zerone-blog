@@ -172,7 +172,7 @@ Respons: `{ "url": "...", "width": 1200, "height": 630 }`.
 Kirim webhook revalidate untuk post terjadwal yang waktunya tiba dan belum diumumkan (maks 50 per panggilan). Aman dipanggil berulang. Jadwalkan tiap menit.
 
 ```sh
-curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://<admin-host>/api/cron/publish
+curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://astro.zerone.id/api/cron/publish
 # {"processed":2}
 ```
 
@@ -186,6 +186,6 @@ curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://<admin-host>/api/cr
 ## Contoh
 
 ```sh
-curl -H "x-api-key: $KEY" "https://<admin-host>/api/posts?category=berita&author=budi&page=2"
-curl -H "x-api-key: $KEY" https://<admin-host>/api/posts/judul-post
+curl -H "x-api-key: $KEY" "https://astro.zerone.id/api/posts?category=berita&author=budi&page=2"
+curl -H "x-api-key: $KEY" https://astro.zerone.id/api/posts/judul-post
 ```

@@ -34,7 +34,7 @@ HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
 Panggil tiap menit dari crontab server:
 
 ```
-* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://admin.zerone.id/api/cron/publish
+* * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://astro.zerone.id/api/cron/publish
 ```
 
 Setup lengkap (script, logrotate): `docs/CRON.md`. Jangan pakai GitHub Actions: jadwal tiap 5 menit menghabiskan kuota menit gratis.

@@ -11,8 +11,11 @@ import node from '@astrojs/node';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://admin.zerone.id',
+  site: 'https://astro.zerone.id',
   output: 'server',
+  // Di belakang nginx: percayai Host + X-Forwarded-Proto/For hanya untuk domain ini.
+  // Tanpa ini Astro menganggap semua request dari 127.0.0.1, jadi limit login per IP berlaku untuk semua orang.
+  security: { allowedDomains: [{ hostname: 'astro.zerone.id', protocol: 'https' }] },
   integrations: [mdx(), sitemap(), react()],
 
   env: {
