@@ -35,7 +35,7 @@ export function startFlow(cookies: AstroCookies, flow: Omit<Flow, 'exp'>) {
 /** Ambil dan hapus challenge (tidak bisa dipakai dua kali). null = tidak ada, kedaluwarsa, atau beda tujuan. */
 export function takeFlow(cookies: AstroCookies, purpose: Flow['purpose']): Flow | null {
   const token = cookies.get(FLOW_COOKIE)?.value;
-  cookies.delete(FLOW_COOKIE, { path: '/' });
+  cookies.delete(FLOW_COOKIE, { path: '/', secure: import.meta.env.PROD }); // __Host- cookie hanya terhapus bila Secure
   if (!token) return null;
   const flow = flows.get(token);
   flows.delete(token);
