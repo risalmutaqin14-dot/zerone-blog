@@ -7,6 +7,7 @@ import {
     Tags,
     UserPen,
     Globe,
+    KeyRound,
     LogOut,
     ChevronsLeft,
 } from "lucide-react";
@@ -58,6 +59,12 @@ const nav = [
         icon: Globe,
         active: path.startsWith("/dashboard/websites"),
         superOnly: true,
+    },
+    {
+        href: "/dashboard/security",
+        label: "Keamanan",
+        icon: KeyRound,
+        active: path.startsWith("/dashboard/security"),
     },
 ].filter((n) => !n.superOnly || user?.role === "superadmin"); // hanya tampilan; penolakan sebenarnya di middleware
 ---

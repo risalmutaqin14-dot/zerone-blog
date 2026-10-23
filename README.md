@@ -20,6 +20,10 @@ HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
 3. Deploy.
 4. Isi API key, origin, dan URL webhook tiap website di menu Websites.
 
+### Passkey (login sidik jari / Face ID)
+
+Butuh tabel `passkeys`: jalankan blok "Login passkey" di akhir `supabase/schema.sql` di SQL Editor Supabase (sekali, aman diulang). Tanpa tabel itu login password tetap jalan, tombol passkey menolak dengan rapi. Kelola passkey di Dashboard → Keamanan.
+
 ### Env
 
 | Variabel | Fungsi |
@@ -28,6 +32,7 @@ HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
 | `SUPABASE_SERVICE_ROLE_KEY` | Kunci service role. Rahasia, jangan di-commit |
 | `REVALIDATE_SECRET` | Dikirim di header `x-revalidate-secret` ke webhook tiap website. Harus sama dengan di Next.js. Kosong = webhook mati |
 | `CRON_SECRET` | Bearer token untuk `/api/cron/publish`. Kosong = endpoint mati |
+| `WEBAUTHN_ORIGIN` | Opsional. Origin login passkey; kosong = `site` di produksi, `http://localhost:4321` saat dev |
 
 ### Cron post terjadwal
 

@@ -193,3 +193,23 @@ end $$;
 drop trigger if exists authors_guard_superadmin on authors;
 create trigger authors_guard_superadmin before update of role or delete on authors
   for each row execute function guard_last_superadmin();
+
+-- ===== Login passkey (WebAuthn): sidik jari / Face ID / PIN perangkat =====
+-- Satu baris = satu passkey milik satu akun. Public key saja yang disimpan (bukan rahasia).
+-- Dicabut otomatis saat akun dihapus (cascade) dan oleh aplikasi saat password diganti.
+create table if not exists passkeys (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references authors(id) on delete cascade,
+  credential_id text not null unique,                 -- base64url, dikirim perangkat saat login
+  public_key text not null,                           -- base64url COSE public key
+  counter bigint not null default 0,                  -- deteksi passkey yang dikloning
+  transports text[] not null default '{}',
+  device_type text not null default 'singleDevice',   -- singleDevice | multiDevice (tersinkron, mis. iCloud Keychain)
+  backed_up boolean not null default false,
+  name text not null default 'Passkey',
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz
+);
+create index if not exists passkeys_user_idx on passkeys (user_id);
+alter table passkeys enable row level security;   -- tanpa policy: hanya service role (server Astro)
+notify pgrst, 'reload schema';

@@ -7,8 +7,8 @@
 
 const ADMIN_ALLOWED = [
   /^\/dashboard\/?$/,
-  /^\/dashboard\/(posts|categories|authors)(\/|$)/,
-  /^\/api\/admin\/(posts|categories|authors|upload)(\/|$)/,
+  /^\/dashboard\/(posts|categories|authors|security)(\/|$)/,
+  /^\/api\/admin\/(posts|categories|authors|upload|passkeys)(\/|$)/,
 ];
 
 /** @param {Role} role @param {string} pathname */

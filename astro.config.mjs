@@ -26,6 +26,8 @@ export default defineConfig({
       REVALIDATE_SECRET: envField.string({ context: 'server', access: 'secret', default: '' }),
       // Secret untuk GET/POST /api/cron/publish (dipanggil scheduler eksternal). Kosong = endpoint mati.
       CRON_SECRET: envField.string({ context: 'server', access: 'secret', default: '' }),
+      // Origin login passkey (WebAuthn). Kosong = `site` di produksi, http://localhost:4321 saat dev.
+      WEBAUTHN_ORIGIN: envField.string({ context: 'server', access: 'secret', default: '' }),
     },
   },
 

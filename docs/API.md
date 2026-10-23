@@ -106,6 +106,19 @@ Error umum: `400` validasi, `404` tidak ada, `409` slug dipakai / masih dipakai 
 | :-- | :-- | :-- | :-- |
 | POST | `/api/auth/login` | form `email`, `password` | set cookie, redirect `/dashboard`; gagal = `/login?error=1` (pesan sama untuk email tak ada / password salah / akun terkunci); `/login?error=rate` bila kena rate limit. 5 salah berturut-turut = akun terkunci 15 menit |
 | POST | `/api/auth/logout` | | hapus cookie, redirect `/login` |
+| POST | `/api/auth/passkey/options` | | challenge login passkey (berlaku 5 menit, cookie httpOnly). Tanpa email: browser menawarkan passkey tersimpan |
+| POST | `/api/auth/passkey/verify` | JSON `{response}` dari `startAuthentication()` | `{ok, redirect}` + cookie sesi; gagal = `401` pesan sama. Rate limit 20/15 menit per IP |
+
+### Passkey (akun sendiri, semua role)
+
+Login tanpa password memakai sidik jari / Face ID / PIN perangkat (WebAuthn, verifikasi pengguna wajib). RP ID = host `site` (astro.zerone.id). Semua passkey user dicabut saat password-nya diganti.
+
+| Method | Path | Keterangan |
+| :-- | :-- | :-- |
+| GET | `/api/admin/passkeys` | Daftar passkey sendiri: `id, name, device_type, backed_up, created_at, last_used_at` |
+| POST | `/api/admin/passkeys/options` | `{currentPassword}` wajib. Challenge pendaftaran untuk SATU passkey. Maks 10 passkey per akun |
+| POST | `/api/admin/passkeys` | `{response, name}` dari `startRegistration()`. `201` passkey baru |
+| DELETE | `/api/admin/passkeys/:id` | Hapus passkey sendiri |
 
 ### Posts
 

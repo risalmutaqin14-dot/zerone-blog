@@ -1,0 +1,20 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import PasskeyManager from "../../components/PasskeyManager.jsx";
+import { admin } from "../../db/admin";
+import { PASSKEY_COLS } from "../../lib/passkeys";
+
+// Hanya passkey milik user yang login (public key & credential id tidak pernah dikirim ke browser).
+const { data, error } = await admin
+    .from("passkeys")
+    .select(PASSKEY_COLS)
+    .eq("user_id", Astro.locals.user!.id)
+    .order("created_at");
+---
+
+<DashboardLayout
+    title="Keamanan"
+    subtitle="Login dengan passkey: sidik jari, Face ID, atau PIN perangkat."
+>
+    <PasskeyManager client:load items={data ?? []} unavailable={!!error} />
+</DashboardLayout>

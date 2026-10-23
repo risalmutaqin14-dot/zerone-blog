@@ -67,7 +67,8 @@ if (existing) {
   const { error } = await db.from('authors').update(creds).eq('id', existing.id);
   if (error) throw error;
   await db.from('sessions').delete().eq('user_id', existing.id); // paksa login ulang di semua perangkat
-  console.log(`Superadmin diperbarui: ${email} (semua sesi lama dicabut)`);
+  await db.from('passkeys').delete().eq('user_id', existing.id); // password direset -> passkey lama dicabut
+  console.log(`Superadmin diperbarui: ${email} (semua sesi dan passkey lama dicabut)`);
 } else {
   const base = slugify(name) || 'superadmin';
   let slug = base;

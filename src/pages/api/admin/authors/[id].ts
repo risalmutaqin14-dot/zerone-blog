@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { admin } from '../../../../db/admin';
 import { SESSION_COOKIE, destroyUserSessions } from '../../../../lib/auth';
 import { hashPassword, verifyPassword } from '../../../../lib/password.js';
+import { revokeUserPasskeys } from '../../../../lib/passkeys';
 import { canEditUser } from '../../../../lib/permissions.js';
 import { json } from '../../../../lib/posts';
 import { hit } from '../../../../lib/rateLimit';
@@ -66,6 +67,8 @@ export const PUT: APIRoute = async ({ request, params, locals, cookies }) => {
 
   // Kredensial/role berubah -> sesi lain milik user ini dicabut. Sesi pelaku sendiri tetap hidup.
   if (sensitive) await destroyUserSessions(id, id === actor.id ? cookies.get(SESSION_COOKIE)?.value : undefined);
+  // Password baru -> semua passkey user ini dicabut (passkey yang sempat ditanam pemegang password lama ikut mati).
+  if (parsed.password) await revokeUserPasskeys(id);
 
   const slug = parsed.profile.slug as string;
   await revalidate({ type: 'author', slug, oldSlug: target.slug !== slug ? target.slug : undefined });
