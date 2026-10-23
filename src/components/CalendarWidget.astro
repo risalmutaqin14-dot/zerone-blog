@@ -1,0 +1,163 @@
+---
+// Kalender mini untuk Overview. Tiap hari: chip berwarna + jumlah per jenis (plan, draft, terjadwal, terbit);
+// hover/fokus memunculkan bubble berisi daftar judul. Detail lengkap ada di /dashboard/calendar.
+import { admin } from "../db/admin";
+import { postStatus } from "../lib/format";
+import { monthGrid, monthLabel, wibDay } from "../lib/calendar";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+
+interface Props {
+    month: string;
+    prev: string;
+    next: string;
+}
+const { month, prev, next } = Astro.props;
+const { days, fromISO, toISO } = monthGrid(month);
+const today = wibDay(new Date());
+
+const site = (p: any) => (p.website?.name as string | undefined) ?? "";
+const [plans, posts, drafts] = await Promise.all([
+    admin.from("content_plans").select("title,planned_for,website:websites(name)").gte("planned_for", days[0]).lte("planned_for", days.at(-1)!),
+    admin.from("posts").select("title,status,published_at,website:websites(name)").eq("status", "published").gte("published_at", fromISO).lt("published_at", toISO),
+    admin.from("posts").select("title,created_at,website:websites(name)").eq("status", "draft").gte("created_at", fromISO).lt("created_at", toISO),
+]);
+
+// Warna inline (bukan kelas Tailwind): tidak bergantung pada generate CSS saat dev.
+const KINDS = {
+    plan: { label: "Plan", color: "#0ea5e9" },
+    draft: { label: "Draft", color: "#64748b" },
+    scheduled: { label: "Scheduled", color: "#f59e0b" },
+    published: { label: "Published", color: "#10b981" },
+} as const;
+type Kind = keyof typeof KINDS;
+const ORDER = Object.keys(KINDS) as Kind[];
+
+type Entry = { title: string; site: string };
+const byDay = new Map<string, Record<Kind, Entry[]>>();
+const add = (day: string, kind: Kind, e: Entry) => {
+    if (!byDay.has(day)) byDay.set(day, { plan: [], draft: [], scheduled: [], published: [] });
+    byDay.get(day)![kind].push(e);
+};
+for (const p of plans.data ?? []) add(p.planned_for, "plan", { title: p.title, site: site(p) });
+for (const p of posts.data ?? []) add(wibDay(p.published_at!), postStatus(p) === "scheduled" ? "scheduled" : "published", { title: p.title, site: site(p) });
+for (const p of drafts.data ?? []) add(wibDay(p.created_at), "draft", { title: p.title, site: site(p) });
+
+const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const PER_KIND = 4;
+const dayLabel = (d: string) =>
+    new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`));
+// Bubble: 3 baris atas muncul di bawah sel, sisanya di atas; kolom tepi diratakan ke sisi agar tak terpotong.
+const popY = (i: number) => (i < 21 ? "top-full mt-1" : "bottom-full mb-1");
+const popX = (i: number) => (i % 7 < 2 ? "left-0" : i % 7 > 4 ? "right-0" : "left-1/2 -translate-x-1/2");
+const nav = "rounded-lg p-1.5 text-slate-500 hover:bg-brand-1/10 hover:text-brand-1";
+---
+
+<div class="flex items-center justify-between gap-2">
+    <h2 class="text-lg font-semibold text-slate-900">Calendar</h2>
+    <div class="flex items-center gap-1">
+        <a href={prev} data-calnav aria-label="Previous month" class={nav}><ChevronLeft size={16} /></a>
+        <span class="min-w-32 text-center text-sm font-medium capitalize text-slate-700">{monthLabel(month)}</span>
+        <a href={next} data-calnav aria-label="Next month" class={nav}><ChevronRight size={16} /></a>
+    </div>
+</div>
+
+<div
+    class="mt-4 grid flex-1 grid-cols-7 gap-1 text-center"
+    style={`grid-template-rows:auto repeat(${days.length / 7},minmax(4rem,1fr))`}
+>
+    {DOW.map((d) => <div class="py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{d}</div>)}
+    {days.map((day, i) => {
+        const data = byDay.get(day);
+        const filled = data ? ORDER.filter((k) => data[k].length) : [];
+        return (
+            <a
+                href={`/dashboard/calendar?month=${month}`}
+                aria-label={filled.length ? `${dayLabel(day)}: ${filled.map((k) => `${data![k].length} ${KINDS[k].label}`).join(", ")}` : undefined}
+                class:list={[
+                    "cal-cell relative flex min-h-16 flex-col items-center rounded-xl pt-1.5 pb-1 text-xs transition outline-none hover:z-20 focus-visible:z-20 focus-visible:ring-2 focus-visible:ring-brand-1",
+                    "hover:bg-slate-50",
+                    !day.startsWith(month) && "opacity-40",
+                ]}
+            >
+                <span class:list={["grid size-6 place-items-center rounded-full", day === today ? "bg-brand-1 font-bold text-white" : "text-slate-700"]}>{Number(day.slice(8))}</span>
+                {filled.length > 0 && (
+                    <span class="mt-1 flex flex-wrap justify-center gap-0.5 px-0.5">
+                        {filled.map((k) => (
+                            <span class="grid h-4 min-w-4 place-items-center rounded px-1 text-[10px] font-bold leading-none text-white" style={`background:${KINDS[k].color}`}>
+                                {data![k].length}
+                            </span>
+                        ))}
+                    </span>
+                )}
+                {filled.length > 0 && (
+                    <div
+                        role="tooltip"
+                        class={`cal-pop absolute z-30 w-64 rounded-xl bg-white p-3 text-left shadow-xl ring-1 ring-slate-200 ${popY(i)} ${popX(i)}`}
+                    >
+                        <p class="mb-2 text-xs font-semibold text-slate-900">{dayLabel(day)}</p>
+                        <div class="space-y-2">
+                            {filled.map((k) => (
+                                <div>
+                                    <p class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide" style={`color:${KINDS[k].color}`}>
+                                        <span class="size-2 rounded-sm" style={`background:${KINDS[k].color}`}></span>
+                                        {KINDS[k].label} · {data![k].length}
+                                    </p>
+                                    <ul class="mt-0.5 space-y-0.5">
+                                        {data![k].slice(0, PER_KIND).map((e) => (
+                                            <li class="truncate text-xs font-medium text-slate-700" title={e.title}>
+                                                {e.title}
+                                                {e.site && <span class="font-normal text-slate-400"> · {e.site}</span>}
+                                            </li>
+                                        ))}
+                                        {data![k].length > PER_KIND && (
+                                            <li class="text-xs text-slate-400">+{data![k].length - PER_KIND} more</li>
+                                        )}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </a>
+        );
+    })}
+</div>
+
+<div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+    <ul class="flex flex-wrap gap-x-3 gap-y-1">
+        {ORDER.map((k) => (
+            <li class="flex items-center gap-1">
+                <span class="inline-block size-3 rounded" style={`background:${KINDS[k].color}`}></span>{KINDS[k].label}
+            </li>
+        ))}
+    </ul>
+    <a href={`/dashboard/calendar?month=${month}`} class="inline-flex items-center gap-1 font-medium text-brand-1 hover:underline">
+        Open calendar <ArrowRight size={12} />
+    </a>
+</div>
+
+
+<style>
+    /* Bubble hanya ada saat sel di-hover / difokus; selain itu display:none (tidak tampil, tidak menangkap klik). */
+    .cal-pop {
+        display: none;
+    }
+    .cal-cell:hover > .cal-pop,
+    .cal-cell:focus-visible > .cal-pop {
+        display: block;
+        animation: cal-pop-in 0.15s ease-out;
+    }
+    @keyframes cal-pop-in {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .cal-cell:hover > .cal-pop,
+        .cal-cell:focus-visible > .cal-pop {
+            animation: none;
+        }
+    }
+</style>
+

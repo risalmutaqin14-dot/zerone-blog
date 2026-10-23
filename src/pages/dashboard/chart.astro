@@ -1,0 +1,11 @@
+---
+// Partial: hanya kartu grafik. Dipanggil fetch dari Overview supaya ganti mode/range tidak memuat ulang halaman.
+import ChartCard from "../../components/ChartCard.astro";
+import { parseMode, parseRange } from "../../lib/chart";
+import { parseMonth } from "../../lib/calendar";
+
+export const partial = true;
+const q = Astro.url.searchParams;
+---
+
+<ChartCard mode={parseMode(q.get("mode"))} range={parseRange(q.get("range"))} cal={parseMonth(q.get("cal"))} />

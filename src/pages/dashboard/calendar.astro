@@ -1,0 +1,512 @@
+---
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import PlanDialog from "../../components/PlanDialog.jsx";
+import PlanActions from "../../components/PlanActions.jsx";
+import { admin } from "../../db/admin";
+import { UUID } from "../../lib/posts";
+import { postStatus } from "../../lib/format";
+import { monthGrid, monthLabel, parseMonth, shiftMonth, wibDay } from "../../lib/calendar";
+import GeneratePlanDialog from "../../components/GeneratePlanDialog.jsx";
+import { ChevronLeft, ChevronRight, ChevronDown, Plus, CalendarDays, Globe, Sparkles } from "lucide-react";
+import { btnPrimary, btnGhost, input } from "../../lib/ui.js";
+
+const sp = Astro.url.searchParams;
+const month = parseMonth(sp.get("month"));
+const website = UUID.test(sp.get("website") ?? "") ? sp.get("website")! : "";
+const { days, fromISO, toISO } = monthGrid(month);
+const today = wibDay(new Date());
+
+let plansQ = admin
+    .from("content_plans")
+    .select("id,title,website_id,category_id,planned_for,status,source,keyword,brief,outline,created_at,website:websites(name,slug)")
+    .gte("planned_for", days[0])
+    .lte("planned_for", days.at(-1)!)
+    .order("planned_for")
+    .order("created_at");
+let postsQ = admin
+    .from("posts")
+    .select("id,title,status,published_at,website:websites(name,slug)")
+    .eq("status", "published")
+    .gte("published_at", fromISO)
+    .lt("published_at", toISO)
+    .order("published_at");
+let draftsQ = admin
+    .from("posts")
+    .select("id,title,created_at,website:websites(name,slug)")
+    .eq("status", "draft")
+    .gte("created_at", fromISO)
+    .lt("created_at", toISO)
+    .order("created_at");
+if (website) {
+    plansQ = plansQ.eq("website_id", website);
+    postsQ = postsQ.eq("website_id", website);
+    draftsQ = draftsQ.eq("website_id", website);
+}
+
+const [{ data: plans, error }, { data: posts }, { data: drafts }, { data: websites }, { data: categories }] =
+    await Promise.all([
+        plansQ,
+        postsQ,
+        draftsQ,
+        admin.from("websites").select("id,name").order("name"),
+        admin.from("categories").select("id,name").order("name"),
+    ]);
+
+// Inline colors (not Tailwind classes) so they always render.
+const KIND: Record<string, { label: string; color: string }> = {
+    idea: { label: "Plan · idea", color: "#8b5cf6" },
+    planned: { label: "Plan", color: "#0ea5e9" },
+    drafted: { label: "Plan done", color: "#64748b" },
+    rejected: { label: "Plan rejected", color: "#f43f5e" },
+    draft: { label: "Draft", color: "#94a3b8" },
+    scheduled: { label: "Scheduled", color: "#f59e0b" },
+    published: { label: "Published", color: "#10b981" },
+};
+const LEGEND = ["planned", "idea", "drafted", "draft", "scheduled", "published"];
+
+type Item = { plan: boolean; id: string; title: string; site: string; slug: string; kind: string };
+const byDay = new Map<string, Item[]>();
+const add = (day: string, it: Item) => byDay.set(day, [...(byDay.get(day) ?? []), it]);
+const site = (p: any) => ({ site: p.website?.name ?? "", slug: p.website?.slug ?? "" });
+
+for (const p of plans ?? []) add(p.planned_for, { plan: true, id: p.id, title: p.title, kind: p.status, ...site(p) });
+for (const p of posts ?? [])
+    add(wibDay(p.published_at!), { plan: false, id: p.id, title: p.title, kind: postStatus(p), ...site(p) });
+// Drafts have no schedule: shown on created date, moved to publish date once scheduled/published.
+for (const p of drafts ?? []) add(wibDay(p.created_at), { plan: false, id: p.id, title: p.title, kind: "draft", ...site(p) });
+
+const plansThisMonth = (plans ?? []).filter((p) => p.planned_for.startsWith(month));
+// 'drafted' = "Plan done": pindah dari Plan list ke card Plan done.
+// Prioritas: plan yang dibuat paling lama di atas.
+const byCreated = [...plansThisMonth].sort((a, b) => a.created_at.localeCompare(b.created_at));
+const monthPlans = byCreated.filter((p) => p.status !== "drafted");
+const donePlans = byCreated.filter((p) => p.status === "drafted");
+
+const PER_PAGE = 10;
+const pageOf = (key: string, total: number) => {
+    const last = Math.max(1, Math.ceil(total / PER_PAGE));
+    const n = Math.floor(Number(sp.get(key)));
+    return { n: n >= 1 && n <= last ? n : 1, last };
+};
+const list = pageOf("page", monthPlans.length);
+const done = pageOf("dpage", donePlans.length);
+const listRows = monthPlans.slice((list.n - 1) * PER_PAGE, list.n * PER_PAGE);
+const doneRows = donePlans.slice((done.n - 1) * PER_PAGE, done.n * PER_PAGE);
+// Link halaman: pertahankan bulan, website, dan halaman card satunya.
+const pageHref = (key: "page" | "dpage", n: number) => {
+    const q = new URLSearchParams({ month, ...(website && { website }) });
+    const other = { page: list.n, dpage: done.n };
+    other[key] = n;
+    if (other.page > 1) q.set("page", String(other.page));
+    if (other.dpage > 1) q.set("dpage", String(other.dpage));
+    return `?${q}`;
+};
+const pageNums = (cur: number, last: number) =>
+    Array.from({ length: last }, (_, i) => i + 1).filter((n) => n === 1 || n === last || Math.abs(n - cur) <= 1);
+const pgBtn = "grid h-8 min-w-8 place-items-center rounded-lg px-2 text-sm font-medium transition";
+const fmtDay = (d: string) =>
+    new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(d + "T00:00:00Z"));
+const MAX = 2; // fits the 7rem cell height; the rest collapse into "+N more"
+const href = (m: string) => `?${new URLSearchParams({ month: m, ...(website && { website }) })}`;
+const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const iconCls = "size-5 shrink-0 rounded-md border border-slate-200 bg-white object-contain p-px";
+---
+
+<DashboardLayout title="Calendar & Plans" subtitle="Content plans (plan date) and published/scheduled articles (publish date) in one view.">
+    <div slot="actions" class="flex items-center gap-2">
+        <button type="button" data-plan-ai class={btnGhost}>
+            <Sparkles size={16} /> Generate plan
+        </button>
+        <button type="button" data-plan-new data-day={today} class={btnPrimary}>
+            <Plus size={16} /> New plan
+        </button>
+    </div>
+
+    {error && <p role="alert" class="mb-4 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">{error.message}</p>}
+
+    <section class="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 sm:p-7">
+        <header class="cal-header">
+            <div class="cal-nav">
+                <a href={href(shiftMonth(month, -1))} aria-label="Previous month" class="cal-nav-btn"><ChevronLeft size={18} /></a>
+                <h2 class="cal-title">
+                    {monthLabel(month).split(" ")[0]} <span>{monthLabel(month).split(" ").slice(1).join(" ")}</span>
+                </h2>
+                <a href={href(shiftMonth(month, 1))} aria-label="Next month" class="cal-nav-btn"><ChevronRight size={18} /></a>
+            </div>
+            {month !== today.slice(0, 7) && (
+                <a href={href(today.slice(0, 7))} class="cal-today-btn">
+                    <CalendarDays size={15} /> Today
+                </a>
+            )}
+            <form method="get" class="ml-auto">
+                <input type="hidden" name="month" value={month} />
+                <label class:list={["cal-filter", website && "is-active"]}>
+                    <Globe size={16} className="cal-filter-ico" />
+                    <select name="website" aria-label="Filter website" onchange="this.form.submit()">
+                        <option value="">All websites</option>
+                        {(websites ?? []).map((w) => <option value={w.id} selected={w.id === website}>{w.name}</option>)}
+                    </select>
+                    <ChevronDown size={16} className="cal-filter-caret" />
+                </label>
+            </form>
+        </header>
+
+        <div class="cal-scroll">
+            <div class="cal-grid">
+                {DOW.map((d, i) => (
+                    <div class:list={["cal-dow", i > 4 && "cal-dow-we"]}>{d}</div>
+                ))}
+                {days.map((day) => {
+                    const inMonth = day.startsWith(month);
+                    const items = byDay.get(day) ?? [];
+                    return (
+                        <div class:list={["cal-day", !inMonth && "cal-out"]}>
+                            <div class="cal-head">
+                                <span class:list={["cal-num", day === today && "cal-today"]}>{Number(day.slice(8))}</span>
+                                <button type="button" data-plan-new data-day={day} aria-label={`Add plan ${day}`} class="cal-add">
+                                    <Plus size={14} />
+                                </button>
+                            </div>
+                            <ul class="cal-list">
+                                {items.slice(0, MAX).map((it) => {
+                                    const k = KIND[it.kind];
+                                    const cls = "cal-chip";
+                                    const style = `--c:${k.color}`;
+                                    const body = (
+                                        <>
+                                            <img src={`/icon-calendar/${it.slug}.png`} alt={it.site} width="20" height="20" class={iconCls} onerror="this.remove()" />
+                                            <span class="truncate">{it.title}</span>
+                                        </>
+                                    );
+                                    return (
+                                        <li>
+                                            {it.plan ? (
+                                                <button type="button" data-plan-id={it.id} title={`${k.label} · ${it.site}`} class={cls} style={style}>{body}</button>
+                                            ) : (
+                                                <a href={`/dashboard/posts/${it.id}/edit`} title={`${k.label} · ${it.site}`} class={cls} style={style}>{body}</a>
+                                            )}
+                                        </li>
+                                    );
+                                })}
+                                {items.length > MAX && (
+                                    <li class="cal-more" title={items.slice(MAX).map((i) => i.title).join("\n")}>+{items.length - MAX} more</li>
+                                )}
+                            </ul>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+
+        <ul class="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-500">
+            {LEGEND.map((k) => (
+                <li class="flex items-center gap-1.5"><span class="size-2.5 rounded-full" style={`background:${KIND[k].color}`}></span>{KIND[k].label}</li>
+            ))}
+        </ul>
+    </section>
+
+
+    <div class="mt-6 grid items-start gap-6 lg:grid-cols-[7fr_3fr]">
+    <section class="min-w-0 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 sm:p-7">
+        <header class="mb-4">
+            <h2 class="text-base font-bold text-slate-900">Plan list</h2>
+            <p class="text-xs capitalize text-slate-500">{monthLabel(month)} · {monthPlans.length} {monthPlans.length === 1 ? "plan" : "plans"}</p>
+        </header>
+        {monthPlans.length === 0 ? (
+            <p class="rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-400">No plans this month.</p>
+        ) : (
+            <>
+            <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+                        <tr>
+                            <th class="px-5 py-3 font-semibold">Plan</th>
+                            <th class="px-5 py-3 font-semibold">Website</th>
+                            <th class="whitespace-nowrap px-5 py-3 font-semibold">Date</th>
+                            <th class="px-5 py-3 font-semibold">Status</th>
+                            <th class="px-5 py-3 text-right font-semibold">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {listRows.map((p) => {
+                            const k = KIND[p.status];
+                            const w = p.website as any;
+                            return (
+                                <tr class="transition hover:bg-slate-50">
+                                    <td class="max-w-80 px-5 py-3">
+                                        <p class:list={["truncate font-medium text-slate-900", p.status === "rejected" && "line-through opacity-60"]}>{p.title}</p>
+                                        {p.keyword && <p class="truncate text-xs text-slate-500">{p.keyword}</p>}
+                                    </td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-slate-600">
+                                        <span class="inline-flex items-center gap-2">
+                                            <img src={`/icon-calendar/${w?.slug}.png`} alt="" width="20" height="20" class={iconCls} onerror="this.remove()" />
+                                            {w?.name}
+                                        </span>
+                                    </td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-slate-600">{fmtDay(p.planned_for)}</td>
+                                    <td class="px-5 py-3">
+                                        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={`background:${k.color}1a;color:${k.color}`}>
+                                            <span class="size-1.5 rounded-full" style={`background:${k.color}`}></span>{k.label}
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-2"><PlanActions client:load id={p.id} title={p.title} status={p.status} /></td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+            {list.last > 1 && (
+                <nav aria-label="Plan list pages" class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs text-slate-500">{(list.n - 1) * PER_PAGE + 1}–{Math.min(list.n * PER_PAGE, monthPlans.length)} of {monthPlans.length}</p>
+                    <ul class="flex items-center gap-1">
+                        <li>
+                            {list.n > 1
+                                ? <a href={pageHref("page", list.n - 1)} class:list={[pgBtn, "text-slate-600 hover:bg-slate-100"]}>Prev</a>
+                                : <span class:list={[pgBtn, "text-slate-300"]}>Prev</span>}
+                        </li>
+                        {pageNums(list.n, list.last).map((n, i, a) => (
+                            <>
+                                {i > 0 && n - a[i - 1] > 1 && <li class="px-1 text-slate-400">…</li>}
+                                <li>
+                                    <a href={pageHref("page", n)} aria-current={n === list.n ? "page" : undefined}
+                                        class:list={[pgBtn, n === list.n ? "bg-brand-1 text-white" : "text-slate-600 hover:bg-slate-100"]}>{n}</a>
+                                </li>
+                            </>
+                        ))}
+                        <li>
+                            {list.n < list.last
+                                ? <a href={pageHref("page", list.n + 1)} class:list={[pgBtn, "text-slate-600 hover:bg-slate-100"]}>Next</a>
+                                : <span class:list={[pgBtn, "text-slate-300"]}>Next</span>}
+                        </li>
+                    </ul>
+                </nav>
+            )}
+            </>
+        )}
+    </section>
+
+    <section class="min-w-0 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 sm:p-7">
+        <header class="mb-4">
+            <h2 class="text-base font-bold text-slate-900">Plan done</h2>
+            <p class="text-xs capitalize text-slate-500">{monthLabel(month)} · {donePlans.length} {donePlans.length === 1 ? "plan" : "plans"}</p>
+        </header>
+        {donePlans.length === 0 ? (
+            <p class="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">No plans done this month.</p>
+        ) : (
+            <>
+            <ul class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
+                {doneRows.map((p) => {
+                    const w = p.website as any;
+                    return (
+                        <li class="px-4 py-3">
+                            <p class="truncate font-medium text-slate-900" title={p.title}>{p.title}</p>
+                            <p class="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                                <img src={`/icon-calendar/${w?.slug}.png`} alt="" width="20" height="20" class={iconCls} onerror="this.remove()" />
+                                <span class="truncate">{w?.name}</span>
+                                <span class="shrink-0">· {fmtDay(p.planned_for)}</span>
+                            </p>
+                        </li>
+                    );
+                })}
+            </ul>
+            {done.last > 1 && (
+                <nav aria-label="Plan done pages" class="mt-4 flex items-center justify-between gap-2">
+                    {done.n > 1
+                        ? <a href={pageHref("dpage", done.n - 1)} class:list={[pgBtn, "text-slate-600 hover:bg-slate-100"]}>Prev</a>
+                        : <span class:list={[pgBtn, "text-slate-300"]}>Prev</span>}
+                    <span class="text-xs text-slate-500">{done.n} / {done.last}</span>
+                    {done.n < done.last
+                        ? <a href={pageHref("dpage", done.n + 1)} class:list={[pgBtn, "text-slate-600 hover:bg-slate-100"]}>Next</a>
+                        : <span class:list={[pgBtn, "text-slate-300"]}>Next</span>}
+                </nav>
+            )}
+            </>
+        )}
+    </section>
+    </div>
+
+    <PlanDialog
+        client:load
+        plans={(plans ?? []).map(({ website: _w, ...p }) => p)}
+        websites={websites ?? []}
+        categories={categories ?? []}
+        defaultWebsite={website}
+    />
+    <GeneratePlanDialog client:load websites={websites ?? []} categories={categories ?? []} today={today} defaultWebsite={website} />
+</DashboardLayout>
+
+<style>
+    /* Calendar layout in plain CSS (not Tailwind): fixed cell height, 7 equal columns. */
+    /* Only the outer edge has a line; no lines between cells. */
+    .cal-scroll { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 1rem; }
+    .cal-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    .cal-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem;
+        border-radius: 9999px;
+    }
+    .cal-nav-btn {
+        display: grid;
+        place-items: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 9999px;
+        color: #64748b;
+        transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .cal-nav-btn:hover { background: #fff; color: var(--color-brand-1, #1e9ac0); box-shadow: 0 1px 3px rgb(15 23 42 / 0.12); }
+    .cal-title { min-width: 11rem; padding: 0 0.5rem; text-align: center; font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; text-transform: capitalize; color: #0f172a; }
+    .cal-title span { font-weight: 600; color: #94a3b8; }
+    .cal-today-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 9999px;
+        background: rgb(30 154 192 / 0.05);
+        box-shadow: 0 0 0 1px rgb(30 154 192 / 0.3);
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-brand-1, #1e9ac0);
+        transition: background 0.15s;
+    }
+    .cal-today-btn:hover { background: rgb(30 154 192 / 0.1); }
+    /* Website filter: pill with leading icon and custom caret. */
+    .cal-filter {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 9999px;
+        background: #fff;
+        box-shadow: 0 0 0 1px #e2e8f0;
+        color: #64748b;
+        transition: box-shadow 0.15s, color 0.15s;
+    }
+    .cal-filter:hover { box-shadow: 0 0 0 1px rgb(30 154 192 / 0.45); color: var(--color-brand-1, #1e9ac0); }
+    .cal-filter:focus-within { box-shadow: 0 0 0 2px rgb(30 154 192 / 0.5); color: var(--color-brand-1, #1e9ac0); }
+    .cal-filter.is-active { box-shadow: 0 0 0 1px rgb(30 154 192 / 0.5); background: rgb(30 154 192 / 0.06); color: var(--color-brand-1, #1e9ac0); }
+    .cal-filter select {
+        appearance: none;
+        -webkit-appearance: none;
+        min-width: 10rem;
+        padding: 0.6rem 2.25rem 0.6rem 2.4rem;
+        border: 0;
+        border-radius: 9999px;
+        background: transparent;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #0f172a;
+        cursor: pointer;
+        outline: none;
+    }
+    .cal-filter :global(.cal-filter-ico) { position: absolute; left: 0.9rem; pointer-events: none; }
+    .cal-filter :global(.cal-filter-caret) { position: absolute; right: 0.85rem; pointer-events: none; }
+    .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        grid-template-rows: auto;
+        grid-auto-rows: 7rem;
+        min-width: 56rem;
+        background: #fff;
+    }
+    /* Day-name header: soft brand-tinted band, bold labels, weekend accent. */
+    .cal-dow {
+        position: relative;
+        padding: 0.85rem 0.75rem;
+        background: linear-gradient(180deg, rgb(30 154 192 / 0.1), rgb(30 154 192 / 0.04));
+        border-bottom: 1px solid rgb(30 154 192 / 0.18);
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #0e7490;
+    }
+    .cal-dow::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -1px;
+        width: 1.25rem;
+        height: 2px;
+        border-radius: 2px;
+        background: var(--color-brand-1, #1e9ac0);
+        transform: translateX(-50%);
+        opacity: 0.55;
+    }
+    .cal-dow-we { color: #e11d48; background: linear-gradient(180deg, rgb(244 63 94 / 0.09), rgb(244 63 94 / 0.03)); border-bottom-color: rgb(244 63 94 / 0.2); }
+    .cal-dow-we::after { background: #f43f5e; }
+    .cal-day {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        height: 7rem;
+        overflow: hidden;
+        padding: 0.4rem 0.5rem;
+        background: #fff;
+        transition: background 0.15s;
+    }
+    .cal-day:hover { background: #f8fafc; }
+    .cal-out { background: #f8fafc; }
+    .cal-out .cal-num { color: #cbd5e1; }
+    .cal-head { display: flex; align-items: center; justify-content: space-between; height: 1.5rem; margin-bottom: 0.2rem; flex: none; }
+    .cal-num {
+        display: grid;
+        place-items: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #334155;
+    }
+    .cal-today {
+        color: #fff;
+        background: linear-gradient(135deg, var(--color-brand-1, #1e9ac0), var(--color-brand-2, #3b82f6));
+        box-shadow: 0 4px 10px -2px rgb(30 154 192 / 0.5);
+    }
+    .cal-add {
+        display: grid;
+        place-items: center;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 0.5rem;
+        color: #94a3b8;
+        opacity: 0;
+        transition: opacity 0.15s, background 0.15s, color 0.15s;
+    }
+    .cal-add:hover { background: #e0f2fe; color: #0284c7; }
+    .cal-day:hover .cal-add, .cal-add:focus-visible { opacity: 1; }
+    @media (hover: none) { .cal-add { opacity: 1; } }
+    .cal-list { display: flex; flex-direction: column; gap: 0.25rem; min-height: 0; margin: 0; padding: 0; list-style: none; }
+    .cal-list > li { min-width: 0; }
+    .cal-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        width: 100%;
+        height: 1.5rem;
+        padding: 0 0.4rem 0 0.35rem;
+        border-radius: 0.5rem;
+        border-left: 3px solid var(--c);
+        background: color-mix(in srgb, var(--c) 12%, white);
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #334155;
+        transition: background 0.15s, transform 0.15s;
+    }
+    .cal-chip:hover { background: color-mix(in srgb, var(--c) 22%, white); transform: translateY(-1px); }
+    .cal-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cal-more { padding-left: 0.4rem; font-size: 11px; font-weight: 500; color: #94a3b8; line-height: 1; }
+</style>
+
