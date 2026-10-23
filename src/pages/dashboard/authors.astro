@@ -17,14 +17,14 @@ const users = (data ?? []).map((a: any) => ({
     posts: a.posts?.[0]?.count ?? 0,
 }));
 
-const fields = [
+const fields: Parameters<typeof NameManager>[0]["fields"] = [
     { key: "email", label: "Email (untuk login)", type: "email" },
     { key: "password", label: "Password", type: "password", hint: "Min. 12 karakter" },
     ...(isSuper
         ? [{
               key: "role",
               label: "Role",
-              type: "select",
+              type: "select" as const,
               options: [
                   { value: "superadmin", label: "Superadmin (akses penuh)" },
                   { value: "admin", label: "Admin" },

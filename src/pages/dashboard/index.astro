@@ -254,7 +254,7 @@ const card = "rounded-3xl bg-white shadow-sm ring-1 ring-slate-200/70";
             card.classList.add("opacity-60", "transition-opacity");
             try {
                 const res = await fetch(a.href.replace("/dashboard?", "/dashboard/chart?"), { signal: ctrl.signal });
-                if (!res.ok) throw new Error(String(res.status));
+                if (!res.ok || res.redirected) throw new Error(String(res.status)); // redirect = halaman penuh, bukan partial
                 card.innerHTML = await res.text();
                 history.replaceState(null, "", a.href); // refresh/bagikan URL tetap menampilkan mode yang sama
             } catch (err) {

@@ -32,7 +32,7 @@ const Section = ({ icon: Icon, title, hint, children }) => (
   </section>
 );
 
-/** @param {{ post?: any, categories?: { id: string, name: string }[], authors?: { id: string, name: string }[], websites?: { id: string, name: string }[] }} props */
+/** @param {{ post?: any, categories?: { id: string, name: string }[], authors?: { id: string, name: string }[], websites?: { id: string, name: string }[], defaultAuthorId?: string }} props */
 export default function PostForm({ post, categories = [], authors = [], websites = [], defaultAuthorId = '' }) {
   const [f, setF] = useState({
     website_id: post?.website_id ?? '',

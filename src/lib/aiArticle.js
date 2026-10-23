@@ -102,7 +102,10 @@ export const OUTLINE_SCHEMA = {
 // ===== Chat revisi outline: editor minta perbaikan, AI mengembalikan HANYA field yang berubah =====
 const BP_FIELDS = /** @type {const} */ ([['title', 200], ['slug', 120], ['excerpt', 500], ['meta_title', 70], ['meta_description', 160], ['sections', 8000]]);
 
-/** Validasi request chat: brief + blueprint saat ini (kebenaran, mungkin sudah disunting editor) + pesan + riwayat. @param {any} b */
+/** Validasi request chat: brief + blueprint saat ini (kebenaran, mungkin sudah disunting editor) + pesan + riwayat.
+ * @param {any} b
+ * @returns {{ error: string } | { data: { brief: Brief, blueprint: Blueprint, message: string, history: { role: string, text: string }[] } }}
+ */
 export function parseOutlineRevise(b) {
   const message = clean(b?.message, 1000);
   if (!message) return { error: 'Write what to change' };

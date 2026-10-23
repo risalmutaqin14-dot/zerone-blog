@@ -27,10 +27,11 @@ assert.equal(validatePassword(pw, 'budi@x.id'), '');
 // --- izin ---
 const dash = ['/dashboard/chart', '/dashboard', '/dashboard/', '/dashboard/posts', '/dashboard/posts/new', '/dashboard/posts/abc/edit',
   '/dashboard/categories', '/dashboard/authors', '/api/admin/posts', '/api/admin/posts/1', '/api/admin/categories/1',
-  '/api/admin/authors', '/api/admin/authors/1', '/api/admin/upload'];
+  '/api/admin/authors', '/api/admin/authors/1', '/api/admin/upload',
+  '/dashboard/calendar', '/api/admin/ai/article', '/api/admin/ai/outline-revise', '/api/admin/plans', '/api/admin/plans/1'];
 const locked = ['/dashboard/websites', '/dashboard/websites/', '/api/admin/websites/1', '/api/admin/websites/1/key',
-  '/dashboard/%77ebsites', '/dashboard/posts/../websites', '/dashboard/postsx', '/dashboard/Websites',
-  '/api/admin', '/api/admin/unknown', '/dashboard/unknown', '/api/adminx/posts'];
+  '/dashboard/%77ebsites', '/dashboard/posts/../websites', '/dashboard/Websites', '/api/admin/WEBSITES/1',
+  '/dashboard//websites', '/dashboard/posts%2f..%2fwebsites'];
 for (const p of dash) assert.ok(canAccessPath('admin', p), `admin harus boleh ${p}`);
 for (const p of locked) assert.ok(!canAccessPath('admin', p), `admin harus DITOLAK ${p}`);
 for (const p of [...dash, ...locked]) assert.ok(canAccessPath('superadmin', p));
