@@ -39,6 +39,24 @@ const t = mdToHtml('# Judul H1\n\nIsi', { takeTitle: true });
 assert.equal(t.title, 'Judul H1');
 assert.ok(!t.html.includes('Judul H1'));
 
+// Frontmatter lengkap: kunci "meta-title" dan "meta_title" sama; tags list/CSV.
+const full = mdToHtml(`---
+title: T
+slug: slug-satu
+excerpt: Ringkas
+meta_title: MT
+meta-description: MD
+tags: [SEO, "#Blog", seo]
+---
+Isi`);
+assert.equal(full.slug, 'slug-satu');
+assert.equal(full.excerpt, 'Ringkas');
+assert.equal(full.meta_title, 'MT');
+assert.equal(full.meta_description, 'MD');
+assert.deepEqual(full.tags, ['seo', 'blog']);
+// excerpt jatuh ke description bila tidak ada.
+assert.equal(mdToHtml('---\ndescription: D\n---\nx').excerpt, 'D');
+
 // Tanpa frontmatter: body utuh.
 assert.equal(splitFrontmatter('halo').body, 'halo');
 console.log('md ok');

@@ -1,15 +1,30 @@
 ---
 import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 import PostForm from '../../../components/PostForm.jsx';
+import AiArticleDialog from '../../../components/AiArticleDialog.jsx';
 import { admin } from '../../../db/admin';
+import { UUID } from '../../../lib/posts';
 
-const [{ data: categories }, { data: authors }, { data: websites }] = await Promise.all([
+const planId = Astro.url.searchParams.get('plan') ?? '';
+
+const [{ data: categories }, { data: authors }, { data: websites }, planRow] = await Promise.all([
   admin.from('categories').select('id,name').order('name'),
   admin.from('authors').select('id,name').order('name'),
   admin.from('websites').select('id,name').order('name'),
+  UUID.test(planId) ? admin.from('content_plans').select('title,keyword,brief,outline').eq('id', planId).maybeSingle() : null,
 ]);
+
+// Plan -> brief Generate article: judul kerja + brief + outline usulan jadi satu teks brief.
+const p = planRow?.data;
+const plan = p
+  ? {
+      keyword: p.keyword ?? '',
+      brief: [`Judul kerja: ${p.title}`, p.brief, p.outline && `Usulan struktur:\n${p.outline}`].filter(Boolean).join('\n\n').slice(0, 4000),
+    }
+  : null;
 ---
 
 <DashboardLayout title="Create Blog" subtitle="Tulis artikel baru.">
+  <AiArticleDialog slot="actions" client:load plan={plan} />
   <PostForm client:load categories={categories ?? []} authors={authors ?? []} websites={websites ?? []} defaultAuthorId={Astro.locals.user!.id} />
 </DashboardLayout>

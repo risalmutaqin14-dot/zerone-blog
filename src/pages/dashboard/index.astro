@@ -1,18 +1,13 @@
 ---
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
-import PostsChart from "../../components/PostsChart.astro";
+import ChartCard from "../../components/ChartCard.astro";
+import CalendarWidget from "../../components/CalendarWidget.astro";
 import ViewButton from "../../components/ViewButton.jsx";
 import DeleteButton from "../../components/DeleteButton.jsx";
 import { admin } from "../../db/admin";
 import { fmtDate, postStatus, STATUS_STYLE } from "../../lib/format";
-import {
-    RANGES,
-    parseRange,
-    rangeLabel,
-    buildBuckets,
-    countByBucket,
-    SITE_COLORS,
-} from "../../lib/chart";
+import { parseMode, parseRange, SITE_COLORS } from "../../lib/chart";
+import { parseMonth, shiftMonth } from "../../lib/calendar";
 import {
     FileText,
     CheckCircle2,
@@ -26,7 +21,10 @@ import {
 } from "lucide-react";
 
 const range = parseRange(Astro.url.searchParams.get("range"));
-const { starts, labels, fromISO } = buildBuckets(range);
+const mode = parseMode(Astro.url.searchParams.get("mode"));
+const calMonth = parseMonth(Astro.url.searchParams.get("cal"));
+// Link yang mempertahankan pilihan lain (mode, range, bulan kalender) kecuali yang diganti.
+const link = (o: Record<string, string>) => `?${new URLSearchParams({ mode, range, cal: calMonth, ...o })}`;
 const now = new Date().toISOString();
 
 const count = async (f: (q: any) => any) => {
@@ -35,7 +33,7 @@ const count = async (f: (q: any) => any) => {
     );
     return count ?? 0;
 };
-const [total, published, scheduled, draft, recent, sites, inRange, drafts] =
+const [total, published, scheduled, draft, recent, sites, drafts] =
     await Promise.all([
         count((q) => q),
         count((q) => q.eq("status", "published").lte("published_at", now)),
@@ -47,13 +45,6 @@ const [total, published, scheduled, draft, recent, sites, inRange, drafts] =
             .order("updated_at", { ascending: false })
             .limit(5),
         admin.from("websites").select("id,name,api_key_hash,posts(count)").order("name"),
-        admin
-            .from("posts")
-            .select("website_id,published_at")
-            .eq("status", "published")
-            .gte("published_at", fromISO)
-            .lte("published_at", now)
-            .limit(10000),
         admin
             .from("posts")
             .select("id,title,updated_at,website_id,website:websites(name)")
@@ -71,15 +62,6 @@ const websites = (sites.data ?? []).map((w: any, i: number) => ({
 }));
 const colorOf = (id: string) => websites.find((w) => w.id === id)?.color ?? "#94a3b8";
 
-const series = websites.map((w) => ({
-    name: w.name,
-    color: w.color,
-    counts: countByBucket(
-        starts,
-        (inRange.data ?? []).filter((p: any) => p.website_id === w.id).map((p: any) => p.published_at),
-    ),
-}));
-const rangeTotal = (inRange.data ?? []).length;
 
 const cards = [
     { label: "Total posts", value: total, icon: FileText, grad: "from-brand-1 to-cyan-400" },
@@ -110,42 +92,19 @@ const card = "rounded-3xl bg-white shadow-sm ring-1 ring-slate-200/70";
         ))}
     </div>
 
-    <section class={`mt-6 ${card} p-5 sm:p-6`}>
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h2 class="text-lg font-semibold text-slate-900">Posts by website</h2>
-                <p class="text-sm text-slate-500">{rangeTotal} published in this range</p>
-            </div>
-            <nav class="flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1" aria-label="Chart range">
-                {RANGES.map((r) => (
-                    <a
-                        href={`?range=${r}`}
-                        aria-current={r === range ? "true" : undefined}
-                        class:list={[
-                            "rounded-xl px-3 py-1.5 text-xs font-semibold transition",
-                            r === range
-                                ? "bg-white text-brand-1 shadow-sm"
-                                : "text-slate-500 hover:text-slate-800",
-                        ]}
-                    >
-                        {rangeLabel(r)}
-                    </a>
-                ))}
-            </nav>
-        </div>
-        <ul class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            {series.map((s) => (
-                <li class="flex items-center gap-2">
-                    <span class="size-3 rounded-full" style={`background:${s.color}`}></span>
-                    <span class="font-medium text-slate-700">{s.name}</span>
-                    <span class="text-slate-400">{s.counts.reduce((a, b) => a + b, 0)}</span>
-                </li>
-            ))}
-        </ul>
-        <div class="mt-4">
-            <PostsChart labels={labels} series={series} />
-        </div>
-    </section>
+    <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <section id="chart-card" class={`${card} min-w-0 p-5 sm:p-6`}>
+            <ChartCard mode={mode} range={range} cal={calMonth} />
+        </section>
+
+        <section class={`${card} flex min-w-0 flex-col p-5 sm:p-6`}>
+            <CalendarWidget
+                month={calMonth}
+                prev={link({ cal: shiftMonth(calMonth, -1) })}
+                next={link({ cal: shiftMonth(calMonth, 1) })}
+            />
+        </section>
+    </div>
 
     <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {websites.map((w) => (
@@ -278,5 +237,43 @@ const card = "rounded-3xl bg-white shadow-sm ring-1 ring-slate-200/70";
         </section>
     </div>
 
+    <script>
+        // Ganti mode/range: ambil hanya kartu grafik (/dashboard/chart), tanpa reload halaman. Gagal -> navigasi biasa.
+        const card = document.getElementById("chart-card")!;
+        let ctrl: AbortController | undefined;
 
+        card.addEventListener("click", async (e) => {
+            const a = (e.target as Element).closest<HTMLAnchorElement>("a[data-chart]");
+            if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            if (a.getAttribute("aria-current") === "true") return;
+
+            ctrl?.abort();
+            ctrl = new AbortController();
+            card.setAttribute("aria-busy", "true");
+            card.classList.add("opacity-60", "transition-opacity");
+            try {
+                const res = await fetch(a.href.replace("/dashboard?", "/dashboard/chart?"), { signal: ctrl.signal });
+                if (!res.ok) throw new Error(String(res.status));
+                card.innerHTML = await res.text();
+                history.replaceState(null, "", a.href); // refresh/bagikan URL tetap menampilkan mode yang sama
+            } catch (err) {
+                if ((err as Error).name !== "AbortError") location.href = a.href;
+                return;
+            } finally {
+                card.removeAttribute("aria-busy");
+                card.classList.remove("opacity-60");
+            }
+        });
+
+        // Panah bulan kalender memuat ulang halaman: bawa mode/range yang sedang tampil, bukan yang di URL awal.
+        document.querySelectorAll<HTMLAnchorElement>("a[data-calnav]").forEach((a) =>
+            a.addEventListener("click", (e) => {
+                const next = new URLSearchParams(location.search);
+                next.set("cal", new URL(a.href).searchParams.get("cal")!);
+                e.preventDefault();
+                location.search = next.toString();
+            }),
+        );
+    </script>
 </DashboardLayout>

@@ -28,6 +28,10 @@ export default defineConfig({
       CRON_SECRET: envField.string({ context: 'server', access: 'secret', default: '' }),
       // Origin login passkey (WebAuthn). Kosong = `site` di produksi, http://localhost:4321 saat dev.
       WEBAUTHN_ORIGIN: envField.string({ context: 'server', access: 'secret', default: '' }),
+      // AI article generator via router OpenAI-compatible. Key kosong = fitur menolak dengan pesan jelas.
+      AI_API_KEY: envField.string({ context: 'server', access: 'secret', default: '' }),
+      AI_BASE_URL: envField.string({ context: 'server', access: 'secret', default: 'https://router.zrone.link/v1' }),
+      AI_MODEL: envField.string({ context: 'server', access: 'secret', default: 'blog-zerone' }),
     },
   },
 
@@ -58,6 +62,24 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    resolve: { dedupe: ['react', 'react-dom'] }, // satu salinan React; cegah "Invalid hook call"
+    // Pra-bundle semua dependensi island sekaligus. Kalau ditemukan belakangan, Vite mengoptimasi ulang saat dev
+    // dan island bisa hydrate dengan dua salinan React (hook error: form tidak interaktif, editor tetap skeleton).
+    optimizeDeps: {
+      include: [
+        'lucide-react',
+        'marked',
+        'react-image-crop',
+        '@tiptap/react',
+        '@tiptap/react/menus',
+        '@tiptap/starter-kit',
+        '@tiptap/extension-image',
+        '@tiptap/extension-placeholder',
+        '@tiptap/extension-text-align',
+        '@tiptap/extension-highlight',
+        '@tiptap/extension-table',
+      ],
+    },
   },
 
   adapter: node({

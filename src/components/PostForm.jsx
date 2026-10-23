@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, ImagePlus, X, Save, FileText, Search, Settings2, Image as ImageIcon } from 'lucide-react';
 import RichEditor from './RichEditor.jsx';
 import { slugify } from '../lib/slug.js';
@@ -62,6 +62,50 @@ export default function PostForm({ post, categories = [], authors = [], websites
   const [msg, setMsg] = useState(null);
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  // Hasil AI Article Generator (AiArticleDialog). Hanya mengisi form; tersimpan sebagai draft saat user klik Save.
+  const fRef = useRef(f);
+  fRef.current = f;
+  const [editorKey, setEditorKey] = useState(0); // RichEditor hanya membaca `value` sekali, jadi di-remount
+  useEffect(() => {
+    const onAi = (e) => {
+      const d = e.detail;
+      const cur = fRef.current;
+      if ((cur.content || cur.title.trim()) && !window.confirm('Replace the current title, content, and SEO fields with the AI article?')) return;
+      setF((p) => ({
+        ...p,
+        title: d.title.slice(0, 200),
+        slug: d.slug,
+        excerpt: d.excerpt,
+        meta_title: d.meta_title,
+        meta_description: d.meta_description,
+        content: d.content,
+        tags: [...new Set([...p.tags, ...d.tags])].slice(0, 10),
+      }));
+      setSlugTouched(true);
+      setEditorKey((k) => k + 1);
+    };
+    window.addEventListener('ai-article', onAi);
+    return () => window.removeEventListener('ai-article', onAi);
+  }, []);
+
+  // Import .md: frontmatter hanya mengisi field yang masih kosong; slug dari file menang atas slug otomatis (belum diedit manual).
+  const onImportMd = (m) => {
+    const mdSlug = slugTouched ? '' : slugify(m.slug);
+    if (mdSlug) setSlugTouched(true);
+    setF((p) => {
+      const title = p.title.trim() ? p.title : (m.title || '').slice(0, 200);
+      return {
+        ...p,
+        title,
+        slug: mdSlug || (slugTouched || p.slug ? p.slug : slugify(title)),
+        excerpt: p.excerpt.trim() ? p.excerpt : m.excerpt.slice(0, 500),
+        meta_title: p.meta_title.trim() ? p.meta_title : m.meta_title.slice(0, 70),
+        meta_description: p.meta_description.trim() ? p.meta_description : m.meta_description.slice(0, 160),
+        tags: [...new Set([...p.tags, ...m.tags])].slice(0, 10),
+      };
+    });
+  };
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase().replace(/^#/, '');
@@ -136,14 +180,9 @@ export default function PostForm({ post, categories = [], authors = [], websites
               onChange={(e) => set('excerpt', e.target.value)} />
           </div>
           <div>
-            <RichEditor value={f.content} onChange={(v) => set('content', v)} onUploadImage={upload}
+            <RichEditor key={editorKey} value={f.content} onChange={(v) => set('content', v)} onUploadImage={upload}
               takeTitle={!f.title.trim()}
-              onImportMd={({ title, description }) => setF((p) => ({
-                ...p,
-                title: p.title.trim() ? p.title : (title || p.title).slice(0, 200),
-                slug: slugTouched || p.slug ? p.slug : slugify(p.title.trim() ? p.title : title),
-                excerpt: p.excerpt.trim() ? p.excerpt : description.slice(0, 500) || p.excerpt,
-              }))} />
+              onImportMd={onImportMd} />
           </div>
         </Section>
 

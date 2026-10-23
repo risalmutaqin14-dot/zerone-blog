@@ -45,7 +45,7 @@ const SizedImage = Image.extend({
   },
 });
 
-// onImportMd({ title, description }) dipanggil setelah file .md dimuat. takeTitle: H1 pertama jadi judul.
+// onImportMd({ title, slug, excerpt, meta_title, meta_description, tags }) dipanggil setelah file .md dimuat. takeTitle: H1 pertama jadi judul.
 export default function RichEditor({ value, onChange, onUploadImage, onImportMd, takeTitle }) {
   const editor = useEditor({
     // Astro SSR: hindari hydration mismatch.
@@ -169,7 +169,7 @@ function Editor({ editor, onUploadImage, onImportMd, takeTitle }) {
       if (!/\.(md|markdown)$/i.test(file.name)) return alert('File harus berekstensi .md atau .markdown');
       if (file.size > MD_MAX_BYTES) return alert('File maksimal 1 MB');
       try {
-        const { html, title, description, localImages } = mdToHtml(await file.text(), { takeTitle });
+        const { html, localImages, ...meta } = mdToHtml(await file.text(), { takeTitle });
         if (!editor.isEmpty) {
           const replace = confirm('Isi artikel sudah ada.\n\nOK = ganti seluruh isi\nBatal = tambahkan di akhir');
           if (replace) editor.commands.setContent(html, { emitUpdate: true });
@@ -177,7 +177,7 @@ function Editor({ editor, onUploadImage, onImportMd, takeTitle }) {
         } else {
           editor.commands.setContent(html, { emitUpdate: true });
         }
-        onImportMd?.({ title, description });
+        onImportMd?.(meta);
         if (localImages) alert(`${localImages} gambar memakai path lokal dan tidak akan tampil. Klik gambar yang rusak, lalu pilih Replace atau Delete.`);
       } catch (e) {
         alert(`Gagal membaca file: ${e.message}`);

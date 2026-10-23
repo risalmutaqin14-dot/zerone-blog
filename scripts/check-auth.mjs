@@ -25,7 +25,7 @@ assert.ok(validatePassword('budisantoso-2024!', 'budisantoso@x.id'), 'mengandung
 assert.equal(validatePassword(pw, 'budi@x.id'), '');
 
 // --- izin ---
-const dash = ['/dashboard', '/dashboard/', '/dashboard/posts', '/dashboard/posts/new', '/dashboard/posts/abc/edit',
+const dash = ['/dashboard/chart', '/dashboard', '/dashboard/', '/dashboard/posts', '/dashboard/posts/new', '/dashboard/posts/abc/edit',
   '/dashboard/categories', '/dashboard/authors', '/api/admin/posts', '/api/admin/posts/1', '/api/admin/categories/1',
   '/api/admin/authors', '/api/admin/authors/1', '/api/admin/upload'];
 const locked = ['/dashboard/websites', '/dashboard/websites/', '/api/admin/websites/1', '/api/admin/websites/1/key',

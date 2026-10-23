@@ -4,6 +4,7 @@ import {
     LayoutDashboard,
     PenSquare,
     Table2,
+    CalendarDays,
     Tags,
     UserPen,
     Globe,
@@ -40,6 +41,12 @@ const nav = [
         active:
             path === "/dashboard/posts" ||
             /^\/dashboard\/posts\/[^/]+\/edit/.test(path),
+    },
+    {
+        href: "/dashboard/calendar",
+        label: "Calendar & Plans",
+        icon: CalendarDays,
+        active: path.startsWith("/dashboard/calendar"),
     },
     {
         href: "/dashboard/categories",
@@ -85,20 +92,22 @@ const nav = [
     <body class="min-h-screen bg-linear-to-b from-sky-100/80 via-slate-100 to-slate-100 bg-no-repeat text-slate-800">
         <aside
             id="sidebar"
-            class="sb fixed inset-y-0 left-0 z-30 hidden lg:flex flex-col p-3 overflow-hidden text-slate-300 bg-linear-to-b from-[#0b2a36] via-[#0a1f2b] to-[#07141d] border-r border-white/5"
+            class="sb fixed top-4 bottom-4 left-4 z-30 hidden lg:flex flex-col p-3 overflow-hidden rounded-3xl text-slate-300 bg-linear-to-b from-[#0b2a36] via-[#0a1f2b] to-[#07141d] border border-white/10 shadow-2xl shadow-slate-900/30"
         >
             <div class="absolute -top-24 -left-24 size-64 rounded-full bg-brand-1/40 blur-3xl pointer-events-none"></div>
             <div class="absolute -bottom-24 -right-24 size-64 rounded-full bg-brand-2/25 blur-3xl pointer-events-none"></div>
 
-            <div class="relative flex items-center gap-3 px-2 h-12 mb-6">
+            <div class="sb-head relative flex items-center justify-center px-9 py-5 mt-1 h-20 mb-6">
+                <img
+                    src="/Zerone-Putih.png"
+                    alt="Zerone"
+                    class="sb-label h-full w-auto max-w-full object-contain"
+                />
                 <img
                     src="/logo.png"
-                    alt="Blog Zerone"
-                    class="size-10 shrink-0 rounded-xl object-contain"
+                    alt="Zerone"
+                    class="sb-mini size-10 rounded-xl object-contain"
                 />
-                <span class="sb-label font-bold text-white text-lg whitespace-nowrap">
-                    Blog Zerone
-                </span>
             </div>
 
             <nav class="relative flex-1 space-y-1" aria-label="Menu utama">
@@ -108,10 +117,10 @@ const nav = [
                         title={label}
                         aria-current={active ? "page" : undefined}
                         class:list={[
-                            "sb-item flex items-center gap-3 rounded-xl px-3 h-11 text-sm font-medium transition",
+                            "sb-item sb-link flex items-center gap-3 rounded-2xl px-3 h-11 text-sm font-medium",
                             active
-                                ? "bg-linear-to-r from-brand-1 to-brand-2 text-white shadow-lg shadow-brand-1/30 ring-1 ring-white/20"
-                                : "hover:bg-white/10 hover:text-white",
+                                ? "bg-linear-to-r from-brand-1 to-brand-2 text-white shadow-lg shadow-brand-1/40"
+                                : "hover:bg-white/8 hover:text-white",
                         ]}
                     >
                         <Icon size={20} className="shrink-0" />
@@ -130,7 +139,7 @@ const nav = [
             <form method="post" action="/api/auth/logout" class="relative">
                 <button
                     title="Keluar"
-                    class="sb-item w-full flex items-center gap-3 rounded-xl px-3 h-11 text-sm font-medium hover:bg-red-500/15 hover:text-red-300 transition"
+                    class="sb-item sb-link sb-danger w-full flex items-center gap-3 rounded-2xl px-3 h-11 text-sm font-medium hover:bg-red-500/15 hover:text-red-300"
                 >
                     <LogOut size={20} className="shrink-0" />
                     <span class="sb-label whitespace-nowrap">Keluar</span>
@@ -142,7 +151,7 @@ const nav = [
                 type="button"
                 title="Ciutkan / buka sidebar"
                 aria-label="Ciutkan atau buka sidebar"
-                class="sb-item relative mt-2 flex items-center gap-3 rounded-xl px-3 h-11 text-sm font-medium bg-white/5 hover:bg-white/10 hover:text-white transition"
+                class="sb-item sb-link relative mt-2 flex items-center gap-3 rounded-2xl px-3 h-11 text-sm font-medium bg-white/5 hover:bg-white/10 hover:text-white"
             >
                 <ChevronsLeft
                     size={20}
@@ -166,7 +175,7 @@ const nav = [
                     </a>
                 ))}
             </header>
-            <main class="p-4 sm:p-8 max-w-full lg:max-w-[85%] mx-auto">
+            <main class="p-4 sm:p-8 max-w-full lg:max-w-[96%] mx-auto">
                 <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
                     <div>
                         <h1 class="text-3xl font-bold tracking-tight text-slate-900">
@@ -194,6 +203,38 @@ const nav = [
                         localStorage.setItem("sb", "collapsed");
                     }
                 });
+
+            // Tooltip saat sidebar diciutkan. Satu elemen di <body> (aside overflow-hidden akan memotongnya).
+            // Buang tooltip bawaan browser (atribut title); teksnya dipindah ke aria-label.
+            document.querySelectorAll("#sidebar [title]").forEach((el) => {
+                if (!el.hasAttribute("aria-label"))
+                    el.setAttribute("aria-label", el.title);
+                el.removeAttribute("title");
+            });
+            const tip = document.createElement("div");
+            tip.id = "sb-tip";
+            tip.setAttribute("role", "tooltip");
+            document.body.appendChild(tip);
+            const hide = () => tip.classList.remove("show");
+            const show = (e) => {
+                const item = e.target.closest?.("#sidebar .sb-item");
+                if (!item || document.documentElement.dataset.sb !== "collapsed")
+                    return hide();
+                const text = item.querySelector(".sb-label")?.textContent.trim();
+                if (!text) return hide();
+                const r = item.getBoundingClientRect();
+                tip.textContent = text;
+                tip.style.left = r.right + 14 + "px";
+                tip.style.top = r.top + r.height / 2 + "px";
+                tip.classList.add("show");
+            };
+            document.addEventListener("mouseover", show);
+            document.addEventListener("focusin", show);
+            document.addEventListener("mouseout", (e) => {
+                if (!e.relatedTarget?.closest?.("#sidebar .sb-item")) hide();
+            });
+            document.addEventListener("focusout", hide);
+            document.getElementById("sidebar").addEventListener("click", hide);
         </script>
     </body>
 </html>
@@ -214,11 +255,26 @@ const nav = [
     }
     @media (min-width: 1024px) {
         .main-wrap {
-            padding-left: var(--sb-w);
+            padding-left: calc(var(--sb-w) + 2rem); /* 1rem jarak kiri + 1rem celah ke konten */
         }
     }
     :root[data-sb="collapsed"] .sb-label {
         display: none;
+    }
+    .sb-mini {
+        display: none;
+    }
+    :root[data-sb="collapsed"] .sb-mini {
+        display: block;
+    }
+    :root[data-sb="collapsed"] .sb-head {
+        /* Ukuran awal header: px-2 h-12 mb-6, tanpa padding vertikal / mt-1. */
+        padding: 0 0.5rem;
+        margin-top: 0;
+        height: 3rem;
+    }
+    :root[data-sb="collapsed"] .sb-mini {
+        flex-shrink: 0;
     }
     :root[data-sb="collapsed"] .sb-item {
         justify-content: center;
@@ -226,5 +282,112 @@ const nav = [
     }
     :root[data-sb="collapsed"] .sb-chevron {
         transform: rotate(180deg);
+    }
+    /* Item menu: border tipis saat hover, geser halus, ikon membesar, kilau menyapu. */
+    .sb-link {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid transparent;
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+            background-color 0.2s ease, border-color 0.2s ease,
+            box-shadow 0.25s ease, color 0.2s ease;
+    }
+    .sb-link svg {
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .sb-link::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.18) 50%, transparent 70%);
+        transform: translateX(-120%);
+        pointer-events: none;
+    }
+    .sb-link:hover {
+        transform: translateX(4px);
+        border-color: rgb(255 255 255 / 0.14);
+        box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+    }
+    .sb-link:hover svg {
+        transform: scale(1.18);
+    }
+    .sb-link:hover::after {
+        transform: translateX(120%);
+        transition: transform 0.7s ease;
+    }
+    .sb-link:active {
+        transform: translateX(4px) scale(0.97);
+    }
+    .sb-danger:hover {
+        border-color: rgb(248 113 113 / 0.35);
+    }
+    /* Aktif: border terang, glow, batang indikator di kiri, ikon bercahaya. */
+    .sb-link[aria-current="page"] {
+        border-color: rgb(255 255 255 / 0.3);
+        box-shadow: 0 8px 22px rgb(0 0 0 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.25);
+    }
+    .sb-link[aria-current="page"]::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 22%;
+        bottom: 22%;
+        width: 4px;
+        border-radius: 0 4px 4px 0;
+        background: #fff;
+        box-shadow: 0 0 10px rgb(255 255 255 / 0.9);
+    }
+    .sb-link[aria-current="page"] svg {
+        filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.7));
+    }
+    :root[data-sb="collapsed"] .sb-link:hover {
+        transform: scale(1.08);
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .sb-link,
+        .sb-link svg,
+        .sb-link::after {
+            transition: none;
+        }
+        .sb-link:hover,
+        .sb-link:hover svg {
+            transform: none;
+        }
+    }
+    #sb-tip {
+        position: fixed;
+        z-index: 50;
+        transform: translate(-6px, -50%);
+        padding: 0.4rem 0.75rem;
+        border-radius: 0.65rem;
+        background: #0a1f2b;
+        color: #fff;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: 0 8px 24px rgb(7 20 29 / 0.35);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+    #sb-tip.show {
+        opacity: 1;
+        transform: translate(0, -50%);
+    }
+    #sb-tip::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -8px;
+        width: 9px;
+        height: 16px;
+        background: inherit;
+        transform: translateY(-50%);
+        clip-path: polygon(100% 0, 100% 100%, 0 50%);
+    }
+    @media (max-width: 1023px) {
+        #sb-tip {
+            display: none;
+        }
     }
 </style>

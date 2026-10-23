@@ -66,6 +66,8 @@ export const PUT: APIRoute = async ({ request, params, locals, cookies }) => {
   if (error) return userDbError(error);
 
   // Kredensial/role berubah -> sesi lain milik user ini dicabut. Sesi pelaku sendiri tetap hidup.
+  // Password diganti -> passkey ikut dicabut (pencuri yang sempat mendaftarkan passkey tidak bertahan).
+  if (parsed.password) await admin.from('passkeys').delete().eq('user_id', id);
   if (sensitive) await destroyUserSessions(id, id === actor.id ? cookies.get(SESSION_COOKIE)?.value : undefined);
   // Password baru -> semua passkey user ini dicabut (passkey yang sempat ditanam pemegang password lama ikut mati).
   if (parsed.password) await revokeUserPasskeys(id);

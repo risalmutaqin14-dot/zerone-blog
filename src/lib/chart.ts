@@ -7,6 +7,9 @@ export const parseRange = (v: string | null): Range =>
 
 export const rangeLabel = (r: Range) => r.toUpperCase();
 
+export type Mode = 'date' | 'total';
+export const parseMode = (v: string | null): Mode => (v === 'total' ? 'total' : 'date');
+
 // Satu warna per website (urutan nama). Dipakai di grafik, kartu, dan badge.
 export const SITE_COLORS = ['#1e98c0', '#f59e0b', '#8b5cf6', '#10b981', '#f43f5e'];
 
@@ -61,3 +64,42 @@ export function countByBucket(starts: number[], times: string[]) {
   }
   return counts;
 }
+
+// Hitungan kumulatif per bucket; base = jumlah sebelum bucket pertama.
+export const cumulative = (counts: number[], base = 0) => {
+  let sum = base;
+  return counts.map((c) => (sum += c));
+};
+
+// Kurva monotonik (Fritsch-Carlson): halus tapi tidak pernah melewati nilai data (tak ada undershoot di bawah 0).
+export function smoothPath(xs: number[], ys: number[]) {
+  const n = xs.length;
+  const f = (v: number) => +v.toFixed(2);
+  if (n === 0) return '';
+  if (n === 1) return `M${f(xs[0])},${f(ys[0])}`;
+  const d = xs.slice(1).map((x, i) => x - xs[i]);
+  const s = ys.slice(1).map((y, i) => (y - ys[i]) / d[i]);
+  const m = xs.map((_, i) =>
+    i === 0 ? s[0] : i === n - 1 ? s[n - 2] : s[i - 1] * s[i] <= 0 ? 0 : (s[i - 1] + s[i]) / 2,
+  );
+  for (let i = 0; i < n - 1; i++) {
+    if (s[i] === 0) {
+      m[i] = m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / s[i];
+    const b = m[i + 1] / s[i];
+    const h = a * a + b * b;
+    if (h > 9) {
+      const t = 3 / Math.sqrt(h);
+      m[i] = t * a * s[i];
+      m[i + 1] = t * b * s[i];
+    }
+  }
+  let p = `M${f(xs[0])},${f(ys[0])}`;
+  for (let i = 0; i < n - 1; i++) {
+    p += `C${f(xs[i] + d[i] / 3)},${f(ys[i] + (m[i] * d[i]) / 3)} ${f(xs[i + 1] - d[i] / 3)},${f(ys[i + 1] - (m[i + 1] * d[i]) / 3)} ${f(xs[i + 1])},${f(ys[i + 1])}`;
+  }
+  return p;
+}
+

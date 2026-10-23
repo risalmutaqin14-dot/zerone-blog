@@ -12,12 +12,16 @@ export function splitFrontmatter(src) {
   const meta = {};
   for (const line of m[1].split(/\r?\n/)) {
     const kv = line.match(/^([A-Za-z_][\w-]*)\s*:\s*(.+)$/);
-    if (kv) meta[kv[1].toLowerCase()] = unquote(kv[2]);
+    if (kv) meta[kv[1].toLowerCase().replace(/-/g, '_')] = unquote(kv[2]);
   }
   return { meta, body: src.slice(m[0].length) };
 }
 
 const stripTags = (s) => s.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+
+// "[a, b]" atau "a, b" -> ['a','b'] (lowercase, tanpa '#', unik, maks 10 sesuai batas form).
+const parseTags = (v = '') =>
+  [...new Set(v.replace(/^\[|\]$/g, '').split(',').map((t) => unquote(t).toLowerCase().replace(/^#/, '').trim()).filter(Boolean))].slice(0, 10);
 
 // Editor hanya punya H2-H4: h1 -> h2, h5/h6 -> h4.
 const shiftHeadings = (html) =>
@@ -44,5 +48,16 @@ export function mdToHtml(src, { takeTitle = false } = {}) {
   }
 
   const localImages = [...html.matchAll(/<img[^>]+src="([^"]*)"/g)].filter((m) => !/^(https?:)?\/\//i.test(m[1])).length;
-  return { html: shiftHeadings(html), title, description: meta.description ?? '', localImages };
+  const description = meta.description ?? '';
+  return {
+    html: shiftHeadings(html),
+    title,
+    slug: meta.slug ?? '',
+    excerpt: meta.excerpt ?? description,
+    description,
+    meta_title: meta.meta_title ?? '',
+    meta_description: meta.meta_description ?? '',
+    tags: parseTags(meta.tags),
+    localImages,
+  };
 }

@@ -1,6 +1,6 @@
 // node --experimental-strip-types scripts/check-chart.mjs
 import assert from 'node:assert/strict';
-import { buildBuckets, countByBucket, parseRange } from '../src/lib/chart.ts';
+import { buildBuckets, countByBucket, parseRange, cumulative, smoothPath, parseMode } from '../src/lib/chart.ts';
 
 const now = new Date('2026-10-16T05:00:00Z'); // Jum, 12:00 WIB
 
@@ -30,4 +30,18 @@ assert.deepEqual(c, [0, 0, 0, 0, 0, 1, 2]);
 
 assert.equal(parseRange('x'), '1m');
 assert.equal(parseRange('ytd'), 'ytd');
+assert.equal(parseMode('total'), 'total');
+assert.equal(parseMode('x'), 'date');
+assert.equal(parseMode(null), 'date');
+assert.deepEqual(cumulative([1, 0, 2], 3), [4, 4, 6]);
+assert.deepEqual(cumulative([]), []);
+
+// Kurva tidak boleh melewati nilai data (tak ada undershoot/overshoot).
+const sp = smoothPath([0, 1, 2, 3], [0, 5, 5, 0]);
+assert.ok(sp.startsWith('M0,0'));
+assert.equal((sp.match(/C/g) ?? []).length, 3);
+const ys = (sp.match(/-?\d+\.?\d*/g) ?? []).filter((_, i) => i % 2 === 1).map(Number);
+assert.ok(ys.every((y) => y >= 0 && y <= 5), `y keluar batas: ${ys}`);
+assert.equal(smoothPath([], []), '');
+assert.equal(smoothPath([4], [2]), 'M4,2');
 console.log('chart ok');
